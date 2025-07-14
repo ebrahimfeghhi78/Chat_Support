@@ -8,6 +8,7 @@ using Chat_Support.Domain.Enums;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 
 namespace Chat_Support.Web.Endpoints;
 
@@ -98,12 +99,12 @@ public class Chat : EndpointGroupBase
     private static async Task<IResult> GetChatRooms(
     IApplicationDbContext context,
     IUser user,
-    IMapper mapper, // <<< ۱. IMapper را به عنوان پارامتر اضافه کنید
+    IMapper mapper, 
     [FromQuery] int page = 1,
     [FromQuery] int pageSize = 20)
     {
         var userId = user.Id;
-        if (string.IsNullOrEmpty(userId))
+        if (string.IsNullOrEmpty(userId.ToString()))
         {
             return Results.Unauthorized();
         }
@@ -139,7 +140,7 @@ public class Chat : EndpointGroupBase
 
             // سپس اطلاعات محاسبه‌شده و سفارشی را روی DTO تنظیم می‌کنیم
             dto.LastMessageContent = item.LastMessage?.Content;
-            dto.LastMessageTime = item.LastMessage?.Created;
+            dto.LastMessageTime = item.LastMessage?.Created.DateTime;
             dto.LastMessageSenderName = item.LastMessage?.Sender != null ? $"{item.LastMessage.Sender.FirstName} {item.LastMessage.Sender.LastName}" : null;
 
             dto.UnreadCount = context.ChatMessages.Count(m =>
@@ -153,7 +154,7 @@ public class Chat : EndpointGroupBase
             if (!dto.IsGroup && item.OtherUser != null)
             {
                 dto.Name = $"{item.OtherUser.FirstName} {item.OtherUser.LastName}";
-                dto.Avatar = item.OtherUser.Avatar;
+                dto.Avatar = item.OtherUser.ImageName;
             }
 
             return dto;
@@ -263,7 +264,7 @@ public class Chat : EndpointGroupBase
             {
                 c.User.Id,
                 UserFullName = c.User.FirstName + " " + c.User.LastName,
-                c.User.Avatar
+                c.User.ImageName
             })
             .Distinct()
             .ToListAsync();
@@ -274,14 +275,14 @@ public class Chat : EndpointGroupBase
     private static async Task<IResult> SearchUsers(
         string query,
         IApplicationDbContext context,
-        IUser currentUser)
+        User currentUser)
     {
         var activeRegionId = currentUser.RegionId;
         var currentUserId = currentUser.Id;
 
         var users = await context.Users
             .Where(u => u.Id != currentUserId)
-            .Where(u => u.RegionsUsers.Any(ru => ru.RegionId == activeRegionId))
+            .Where(u => u.UserRegions.Any(ru => ru.RegionId == activeRegionId))
             .Where(u => u.UserName!.Contains(query) ||
                        u.Email!.Contains(query) ||
                        (u.FirstName + " " + u.LastName).Contains(query))
@@ -291,7 +292,7 @@ public class Chat : EndpointGroupBase
                 UserName = u.UserName,
                 FullName = u.FirstName + " " + u.LastName,
                 u.Email,
-                u.Avatar
+                u.ImageName
             })
             .Take(20)
             .ToListAsync();
@@ -310,7 +311,7 @@ public class Chat : EndpointGroupBase
             {
                 m.User.Id,
                 m.User.UserName,
-                m.User.Avatar,
+                m.User.ImageName,
                 m.User.FirstName,
                 m.User.LastName,
                 m.Role,
@@ -372,7 +373,7 @@ public class Chat : EndpointGroupBase
 
     private static async Task<IResult> RemoveGroupMember(
         int roomId,
-        string userId,
+        int userId,
         IMediator mediator)
     {
         var command = new RemoveGroupMemberCommand(roomId, userId);
@@ -399,14 +400,14 @@ public class Chat : EndpointGroupBase
     }
 
     // Request DTO
-    public record AddMembersRequest(List<string> UserIds);
+    public record AddMembersRequest(List<int> UserIds);
 
     // Request DTOs
     public record CreateChatRoomRequest(
         string Name,
         string? Description,
         bool IsGroup,
-        List<string>? MemberIds = null,
+        List<int>? MemberIds = null,
         int? RegionId = null
     );
 

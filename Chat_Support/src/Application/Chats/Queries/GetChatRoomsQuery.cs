@@ -26,7 +26,7 @@ public class GetChatRoomsQueryHandler : IRequestHandler<GetChatRoomsQuery, List<
     public async Task<List<ChatRoomDto>> Handle(GetChatRoomsQuery request, CancellationToken cancellationToken)
     {
         var userId = _user.Id;
-        if (string.IsNullOrEmpty(userId))
+        if (string.IsNullOrEmpty(userId.ToString()))
         {
             return new List<ChatRoomDto>();
         }
@@ -64,7 +64,7 @@ public class GetChatRoomsQueryHandler : IRequestHandler<GetChatRoomsQuery, List<
                 if (otherMember?.User != null)
                 {
                     dto.Name = $"{otherMember.User.FirstName} {otherMember.User.LastName}";
-                    dto.Avatar = otherMember.User.Avatar;
+                    dto.Avatar = otherMember.User.ImageName;
                 }
             }
 
@@ -73,7 +73,7 @@ public class GetChatRoomsQueryHandler : IRequestHandler<GetChatRoomsQuery, List<
             if (lastMessage != null)
             {
                 dto.LastMessageContent = lastMessage.Content;
-                dto.LastMessageTime = lastMessage.Created;
+                dto.LastMessageTime = lastMessage.Created.DateTime;
                 dto.LastMessageSenderName = $"{lastMessage.Sender.FirstName} {lastMessage.Sender.LastName}";
             }
         }

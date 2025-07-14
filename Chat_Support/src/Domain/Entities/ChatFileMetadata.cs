@@ -7,7 +7,7 @@ public class ChatFileMetadata : BaseAuditableEntity
     public long FileSize { get; set; }
     public string ContentType { get; set; } = string.Empty;
     public int ChatRoomId { get; set; }
-    public string? UploadedById { get; set; } = string.Empty;
+    public int? UploadedById { get; set; } 
     public DateTime UploadedDate { get; set; }
     public MessageType MessageType { get; set; }
 

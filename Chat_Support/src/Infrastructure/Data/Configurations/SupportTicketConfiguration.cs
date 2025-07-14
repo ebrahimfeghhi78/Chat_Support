@@ -15,13 +15,10 @@ public class SupportTicketConfiguration : IEntityTypeConfiguration<SupportTicket
             .HasForeignKey(ticket => ticket.RequesterUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         entity.HasOne(ticket => ticket.AssignedAgent)
-            .WithMany(user => user.SupportTicketsAsAgent)
+            .WithMany(user => user.AssignedTickets)
             .HasForeignKey(ticket => ticket.AssignedAgentUserId)
             .OnDelete(DeleteBehavior.Restrict);
-
-
 
         entity.HasOne(e => e.RequesterGuest)
             .WithMany(g => g.SupportTickets)

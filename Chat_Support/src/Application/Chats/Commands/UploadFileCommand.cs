@@ -1,5 +1,6 @@
 ﻿using Chat_Support.Application.Common.Interfaces;
 using Chat_Support.Domain.Enums;
+using Microsoft.AspNetCore.Http;
 
 namespace Chat_Support.Application.Chats.Commands;
 

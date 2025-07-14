@@ -20,7 +20,7 @@ public class ChatRoomMemberDto
                 .ForMember(dest => dest.FullName,
                     opt => opt.MapFrom(src => $"{src.User.FirstName} {src.User.LastName}")) 
                 .ForMember(dest => dest.Avatar,
-                    opt => opt.MapFrom(src => src.User.Avatar)); 
+                    opt => opt.MapFrom(src => src.User.ImageName)); 
         }
     }
 }

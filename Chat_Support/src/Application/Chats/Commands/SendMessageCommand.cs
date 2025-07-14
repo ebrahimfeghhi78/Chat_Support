@@ -38,7 +38,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Cha
 
     public async Task<ChatMessageDto> Handle(SendMessageCommand request, CancellationToken cancellationToken)
     {
-        var senderUserId = _user.Id ?? throw new UnauthorizedAccessException("User is not authenticated.");
+        var senderUserId = _user.Id;
 
         // --- بخش ۱: اعتبار‌سنجی و ذخیره پیام ---
         var chatRoom = await _context.ChatRooms
@@ -92,7 +92,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Cha
 
             // آپدیت آخرین پیام
             roomUpdateDto.LastMessageContent = message.Content;
-            roomUpdateDto.LastMessageTime = message.Created;
+            roomUpdateDto.LastMessageTime = message.Created.DateTime;
             roomUpdateDto.LastMessageSenderName = $"{senderUser.FirstName} {senderUser.LastName}";
 
             // سفارشی‌سازی نام و آواتار برای چت‌های خصوصی
@@ -100,11 +100,11 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Cha
             {
                 // برای هر عضو، "طرف مقابل" همان فرستنده پیام است
                 roomUpdateDto.Name = $"{senderUser.FirstName} {senderUser.LastName}";
-                roomUpdateDto.Avatar = senderUser.Avatar;
+                roomUpdateDto.Avatar = senderUser.ImageName;
             }
 
             // ۳. ارسال DTO نهایی
-            await _chatHubService.SendChatRoomUpdateToUser(member.UserId!, roomUpdateDto);
+            await _chatHubService.SendChatRoomUpdateToUser(member.UserId, roomUpdateDto);
         }
 
         return messageDto;

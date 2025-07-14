@@ -1,4 +1,4 @@
-﻿namespace LawyerProject.Application.Common.Results;
+﻿namespace Chat_Support.Application.Common.Results;
 
 public class TokenValidationResult
 {

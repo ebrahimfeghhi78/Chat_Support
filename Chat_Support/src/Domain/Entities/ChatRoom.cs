@@ -7,11 +7,13 @@ public class ChatRoom : BaseAuditableEntity
     public bool IsGroup { get; set; }
     public string? Avatar { get; set; }
     public int? RegionId { get; set; }
-    public string? CreatedById { get; set; }
+    public int? CreatedById { get; set; }
     public string? GuestIdentifier { get; set; }
-    public ChatRoomType ChatRoomType { get; set; } = this.ChatRoomType.UserToUser;
+    public bool IsDeleted { get; set; }
+    public ChatRoomType ChatRoomType { get; set; } = ChatRoomType.UserToUser;
+    
     public virtual Region? Region { get; set; }
-    public new virtual User CreatedBy { get; set; } = null!;
+    public new virtual User? CreatedBy { get; set; }
     public virtual ICollection<ChatRoomMember> Members { get; set; } = new List<ChatRoomMember>();
     public virtual ICollection<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
 }

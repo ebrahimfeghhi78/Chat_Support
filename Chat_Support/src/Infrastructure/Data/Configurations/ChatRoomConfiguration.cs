@@ -13,14 +13,16 @@ public class ChatRoomConfiguration : IEntityTypeConfiguration<ChatRoom>
         entity.Property(e => e.Description).HasMaxLength(500);
         entity.Property(e => e.Avatar).HasMaxLength(500);
      
-        entity.HasOne(e => e.CreatedBy)
-            .WithMany()
+        entity.HasOne<User>()
+            .WithMany(u => u.CreatedChatRooms)
             .HasForeignKey(e => e.CreatedById)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         entity.HasOne(e => e.Region)
             .WithMany()
             .HasForeignKey(e => e.RegionId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.SetNull);
 
         entity.HasIndex(e => e.Name);

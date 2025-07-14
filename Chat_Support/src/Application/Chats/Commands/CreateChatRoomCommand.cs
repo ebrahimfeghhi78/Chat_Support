@@ -12,7 +12,7 @@ public record CreateChatRoomCommand(
     string Name,
     string? Description,
     bool IsGroup,
-    List<string>? MemberIds = null,
+    List<int>? MemberIds = null,
     int? RegionId = null,
     string? GuestFullName = null,
     string? GuestEmail = null
@@ -35,7 +35,7 @@ public class CreateChatRoomCommandHandler : IRequestHandler<CreateChatRoomComman
 
     public async Task<ChatRoomDto> Handle(CreateChatRoomCommand request, CancellationToken cancellationToken)
     {
-        var creatorUserId = _user.Id ?? throw new UnauthorizedAccessException("User is not authenticated.");
+        var creatorUserId = _user.Id ;
         var activeRegionId = _user.RegionId;
 
         // =================================================================
@@ -69,7 +69,7 @@ public class CreateChatRoomCommandHandler : IRequestHandler<CreateChatRoomComman
 
                 // سفارشی‌سازی نام و آواتار برای نمایش در فرانت‌اند
                 roomDto.Name = $"{otherUser.FirstName} {otherUser.LastName}";
-                roomDto.Avatar = otherUser.Avatar;
+                roomDto.Avatar = otherUser.ImageName;
 
                 return roomDto;
             }
@@ -88,7 +88,7 @@ public class CreateChatRoomCommandHandler : IRequestHandler<CreateChatRoomComman
         };
 
         // افزودن اعضا به چت‌روم
-        var allMemberIds = new List<string>(request.MemberIds ?? new List<string>());
+        var allMemberIds = new List<int>(request.MemberIds ?? new List<int>());
         if (!allMemberIds.Contains(creatorUserId))
         {
             allMemberIds.Add(creatorUserId);
@@ -127,12 +127,12 @@ public class CreateChatRoomCommandHandler : IRequestHandler<CreateChatRoomComman
                 if (otherUser != null)
                 {
                     roomDtoForMember.Name = $"{otherUser.FirstName} {otherUser.LastName}";
-                    roomDtoForMember.Avatar = otherUser.Avatar;
+                    roomDtoForMember.Avatar = otherUser.ImageName;
                 }
             }
             // برای چت گروهی، نام و آواتار خود گروه نمایش داده می‌شود که AutoMapper به درستی انجام داده است.
 
-            if (member.UserId != null)
+            if (member.UserId.ToString() != null)
             {
                 await _chatHubService.SendChatRoomUpdateToUser(member.UserId, roomDtoForMember);
             }
@@ -146,7 +146,7 @@ public class CreateChatRoomCommandHandler : IRequestHandler<CreateChatRoomComman
             if (otherUser != null)
             {
                 finalDtoForRequester.Name = $"{otherUser.FirstName} {otherUser.LastName}";
-                finalDtoForRequester.Avatar = otherUser.Avatar;
+                finalDtoForRequester.Avatar = otherUser.ImageName;
             }
         }
 

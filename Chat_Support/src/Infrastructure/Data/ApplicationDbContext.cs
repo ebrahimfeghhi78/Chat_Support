@@ -13,7 +13,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<TodoList> TodoLists => Set<TodoList>();
 
     public DbSet<TodoItem> TodoItems => Set<TodoItem>();
-
+    public new DbSet<User> Users => Set<User>();
+    public DbSet<Group> Groups => Set<Group>();
+    public DbSet<UserGroup> UserGroups => Set<UserGroup>();
+    public DbSet<Region> Regions => Set<Region>();
+    public DbSet<UserRegion> UserRegions => Set<UserRegion>();
+    public DbSet<SupportAgent> SupportAgents => Set<SupportAgent>();
+    public DbSet<UserFacility> UserFacilities => Set<UserFacility>();
+    public DbSet<GroupFacility> GroupFacilities => Set<GroupFacility>();
+    public DbSet<TicketReply> TicketReplies => Set<TicketReply>();
     public DbSet<ChatRoom> ChatRooms => Set<ChatRoom>();
     public DbSet<ChatRoomMember> ChatRoomMembers => Set<ChatRoomMember>();
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();

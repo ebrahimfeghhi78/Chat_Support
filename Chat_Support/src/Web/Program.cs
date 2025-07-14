@@ -12,6 +12,7 @@ builder.AddKeyVaultIfConfigured();
 builder.AddApplicationServices();
 builder.AddInfrastructureServices();
 builder.AddWebServices();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 

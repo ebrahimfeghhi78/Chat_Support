@@ -6,7 +6,7 @@ namespace Chat_Support.Application.Chats.Commands;
 
 public record RemoveGroupMemberCommand(
     int ChatRoomId,
-    string UserId
+    int UserId
 ) : IRequest<bool>;
 
 public class RemoveGroupMemberCommandHandler : IRequestHandler<RemoveGroupMemberCommand, bool>

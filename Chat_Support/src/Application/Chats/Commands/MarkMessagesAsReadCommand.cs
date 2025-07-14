@@ -87,7 +87,7 @@ public class MarkMessagesAsReadCommandHandler : IRequestHandler<MarkMessagesAsRe
 
         foreach (var group in messagesBySender)
         {
-            if (!string.IsNullOrEmpty(group.Key))
+            if (!string.IsNullOrEmpty(group.Key.ToString()))
             {
                 foreach (var message in group)
                 {

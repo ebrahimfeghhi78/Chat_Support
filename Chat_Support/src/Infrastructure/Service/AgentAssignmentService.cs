@@ -40,7 +40,7 @@ public class AgentAssignmentService : IAgentAssignmentService
         return availableAgents;
     }
 
-    public async Task<int> GetAgentWorkloadAsync(string agentId, CancellationToken cancellationToken = default)
+    public async Task<int> GetAgentWorkloadAsync(int agentId, CancellationToken cancellationToken = default)
     {
         return await _context.SupportTickets
             .CountAsync(t => t.AssignedAgentUserId == agentId
@@ -48,7 +48,7 @@ public class AgentAssignmentService : IAgentAssignmentService
                 cancellationToken);
     }
 
-    public async Task UpdateAgentStatusAsync(string agentId, AgentStatus status, CancellationToken cancellationToken = default)
+    public async Task UpdateAgentStatusAsync(int agentId, AgentStatus status, CancellationToken cancellationToken = default)
     {
         var agent = await _context.Users.FindAsync(new object[] { agentId }, cancellationToken);
         if (agent != null)

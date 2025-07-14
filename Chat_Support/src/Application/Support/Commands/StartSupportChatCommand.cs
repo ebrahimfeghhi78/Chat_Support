@@ -5,7 +5,7 @@ using Chat_Support.Domain.Enums;
 namespace Chat_Support.Application.Support.Commands;
 
 public record StartSupportChatCommand(
-    string? UserId,
+    int UserId,
     string? GuestSessionId,
     string? GuestName,
     string? GuestEmail,
@@ -18,7 +18,7 @@ public record StartSupportChatCommand(
 public record StartSupportChatResult(
     int ChatRoomId,
     int TicketId,
-    string? AssignedAgentId,
+    int? AssignedAgentId,
     string? AssignedAgentName
 );
 
@@ -42,7 +42,7 @@ public class StartSupportChatCommandHandler : IRequestHandler<StartSupportChatCo
     {
         // 1. مدیریت Guest User
         GuestUser? guestUser = null;
-        if (string.IsNullOrEmpty(request.UserId))
+        if (string.IsNullOrEmpty(request.UserId.ToString()))
         {
             guestUser = await _context.GuestUsers
                 .FirstOrDefaultAsync(g => g.SessionId == request.GuestSessionId, cancellationToken);
@@ -74,20 +74,20 @@ public class StartSupportChatCommandHandler : IRequestHandler<StartSupportChatCo
         // 3. ایجاد Chat Room
         var chatRoom = new ChatRoom
         {
-            Name = !string.IsNullOrEmpty(request.UserId)
+            Name = !string.IsNullOrEmpty(request.UserId.ToString())
                 ? "Support Chat - User"
                 : $"Support Chat - {request.GuestName ?? "Guest"}",
             Description = "Live support chat",
             IsGroup = false,
             ChatRoomType = ChatRoomType.Support, // تنظیم نوع به پشتیبانی
-            CreatedById = request.UserId ?? assignedAgent?.Id,
+            CreatedById = request.UserId ,
             GuestIdentifier = guestUser?.SessionId
         };
         _context.ChatRooms.Add(chatRoom);
         await _context.SaveChangesAsync(cancellationToken);
 
         // 4. اضافه کردن Members
-        if (!string.IsNullOrEmpty(request.UserId))
+        if (!string.IsNullOrEmpty(request.UserId.ToString()))
         {
             _context.ChatRoomMembers.Add(new ChatRoomMember
             {

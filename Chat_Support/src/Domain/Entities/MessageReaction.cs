@@ -3,7 +3,7 @@
 public class MessageReaction : BaseAuditableEntity
 {
     public int MessageId { get; set; }
-    public string? UserId { get; set; }
+    public int UserId { get; set; }
     public string Emoji { get; set; } = string.Empty;
 
     public virtual ChatMessage Message { get; set; } = null!;

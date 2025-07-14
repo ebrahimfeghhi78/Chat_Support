@@ -31,10 +31,10 @@ public class ChatHubService : IChatHubService
         await _hubContext.Clients.All
             .SendAsync("UserOnlineStatus", new { UserId = userId, IsOnline = isOnline });
     }
-    
-    public async Task SendChatRoomUpdateToUser(string userId, ChatRoomDto roomDetails)
+
+    public async Task SendChatRoomUpdateToUser(int userId, ChatRoomDto roomDetails)
     {
-        await _hubContext.Clients.User(userId)
+        await _hubContext.Clients.User(userId.ToString())
             .SendAsync("ReceiveChatRoomUpdate", roomDetails);
     }
 
@@ -43,15 +43,15 @@ public class ChatHubService : IChatHubService
         await _hubContext.Clients.Group(roomId).SendAsync(eventName, payload);
     }
 
-    public async Task NotifyAgentOfNewChat(string agentId, int chatRoomId)
+    public async Task NotifyAgentOfNewChat(int agentId, int chatRoomId)
     {
-        await _hubContext.Clients.User(agentId)
+        await _hubContext.Clients.User(agentId.ToString())
             .SendAsync("NewSupportChat", new { ChatRoomId = chatRoomId });
     }
 
-    public async Task NotifyChatTransferred(string oldAgentId, int chatRoomId)
+    public async Task NotifyChatTransferred(int oldAgentId, int chatRoomId)
     {
-        await _hubContext.Clients.User(oldAgentId)
+        await _hubContext.Clients.User(oldAgentId.ToString())
             .SendAsync("ChatTransferred", new { ChatRoomId = chatRoomId });
     }
 

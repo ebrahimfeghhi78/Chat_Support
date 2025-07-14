@@ -24,7 +24,7 @@ public class ForwardMessageCommandHandler : IRequestHandler<ForwardMessageComman
 
     public async Task<ChatMessageDto> Handle(ForwardMessageCommand request, CancellationToken cancellationToken)
     {
-        var forwarderUserId = _user.Id ?? throw new UnauthorizedAccessException("User not authenticated.");
+        var forwarderUserId = _user.Id ;
 
         // --- بخش ۱: خواندن اطلاعات اولیه ---
         var originalMessage = await _context.ChatMessages
@@ -72,7 +72,7 @@ public class ForwardMessageCommandHandler : IRequestHandler<ForwardMessageComman
         // --- بخش ۴: آپدیت و ارسال وضعیت جدید چت‌روم ---
         foreach (var member in targetChatRoom.Members)
         {
-            if (string.IsNullOrEmpty(member.UserId)) continue;
+            if (string.IsNullOrEmpty(member.UserId.ToString())) continue;
 
             var roomUpdateDto = _mapper.Map<ChatRoomDto>(targetChatRoom);
 
@@ -85,7 +85,7 @@ public class ForwardMessageCommandHandler : IRequestHandler<ForwardMessageComman
             // آپدیت آخرین پیام
             var forwarderUser = targetChatRoom.Members.First(m => m.UserId == forwarderUserId).User;
             roomUpdateDto.LastMessageContent = forwardedMessage.Content;
-            roomUpdateDto.LastMessageTime = forwardedMessage.Created;
+            roomUpdateDto.LastMessageTime = forwardedMessage.Created.DateTime;
             roomUpdateDto.LastMessageSenderName = $"{forwarderUser.FirstName} {forwarderUser.LastName}";
 
             if (!targetChatRoom.IsGroup)
@@ -94,7 +94,7 @@ public class ForwardMessageCommandHandler : IRequestHandler<ForwardMessageComman
                 if (otherUser != null)
                 {
                     roomUpdateDto.Name = $"{otherUser.FirstName} {otherUser.LastName}";
-                    roomUpdateDto.Avatar = otherUser.Avatar;
+                    roomUpdateDto.Avatar = otherUser.ImageName;
                 }
             }
 

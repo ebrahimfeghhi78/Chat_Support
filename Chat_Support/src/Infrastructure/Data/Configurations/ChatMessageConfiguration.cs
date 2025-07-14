@@ -12,10 +12,12 @@ public class ChatMessageConfiguration: IEntityTypeConfiguration<ChatMessage>
         entity.Property(e => e.Content).IsRequired();
         entity.Property(e => e.AttachmentUrl).HasMaxLength(1000);
         entity.Property(e => e.AttachmentType).HasMaxLength(100);
-
+        
+        // Make sender relationship optional
         entity.HasOne(e => e.Sender)
             .WithMany()
             .HasForeignKey(e => e.SenderId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         entity.HasOne(e => e.ChatRoom)
@@ -26,8 +28,10 @@ public class ChatMessageConfiguration: IEntityTypeConfiguration<ChatMessage>
         entity.HasOne(e => e.ReplyToMessage)
             .WithMany(m => m.Replies)
             .HasForeignKey(e => e.ReplyToMessageId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Indexes
         entity.HasIndex(e => e.ChatRoomId);
         entity.HasIndex(e => e.SenderId);
         entity.HasIndex(e => e.Created);

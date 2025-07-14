@@ -25,7 +25,14 @@ public class Support : EndpointGroupBase
 
         group.MapPost("/guest/message", SendGuestMessage)
             .AllowAnonymous()
-            .RequireHeader("X-Session-Id");
+            .AddEndpointFilter(async (context, next) =>
+            {
+                if (!context.HttpContext.Request.Headers.ContainsKey("X-Session-Id"))
+                {
+                    return Results.BadRequest("Missing required header: X-Session-Id");
+                }
+                return await next(context);
+            });
 
         group.MapGet("/check-auth", (Delegate)CheckSupportAuth)
             .WithName("CheckSupportAuth")
@@ -71,12 +78,12 @@ public class Support : EndpointGroupBase
     {
         var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
 
-        var userId = context.User?.Identity?.IsAuthenticated == true
+        var userId = int.Parse((context.User?.Identity?.IsAuthenticated == true
             ? context.User.FindFirst("sub")?.Value
-            : null;
+            : null) ?? string.Empty);
 
         // اگر کاربر لاگین نکرده، redirect به صفحه login
-        if (string.IsNullOrEmpty(userId) && string.IsNullOrEmpty(request.GuestSessionId))
+        if (string.IsNullOrEmpty(userId.ToString()) && string.IsNullOrEmpty(request.GuestSessionId))
         {
             return Results.Unauthorized();
         }
@@ -155,53 +162,59 @@ public class Support : EndpointGroupBase
         IApplicationDbContext dbContext,
         [FromQuery] SupportTicketStatus? status)
     {
-        var agentId = context.User.FindFirst("sub")?.Value;
+        string? value = context.User.FindFirst("sub")?.Value;
+        if (value != null)
+        {
+            var agentId = int.Parse(value);
 
-        var query = dbContext.SupportTickets
-            .Include(t => t.RequesterUser)
-            .Include(t => t.RequesterGuest)
-            .Include(t => t.ChatRoom)
+            var query = dbContext.SupportTickets
+                .Include(t => t.RequesterUser)
+                .Include(t => t.RequesterGuest)
+                .Include(t => t.ChatRoom)
                 .ThenInclude(cr => cr.Messages)
-            .Where(t => t.AssignedAgentUserId == agentId);
+                .Where(t => t.AssignedAgentUserId == agentId);
 
-        if (status.HasValue)
-            query = query.Where(t => t.Status == status.Value);
+            if (status.HasValue)
+                query = query.Where(t => t.Status == status.Value);
 
-        var tickets = await query
-            .OrderByDescending(t => t.Created)
-            .Select(t => new
-            {
-                t.Id,
-                t.Status,
-                t.Created,
-                t.ClosedAt,
-                ChatRoomId = t.ChatRoomId,
-                RequesterName = t.RequesterUser != null
-                    ? $"{t.RequesterUser.FirstName} {t.RequesterUser.LastName}"
-                    : t.RequesterGuest!.Name ?? "Guest",
-                RequesterEmail = t.RequesterUser != null
-                    ? t.RequesterUser.Email
-                    : t.RequesterGuest!.Email,
-                LastMessage = t.ChatRoom.Messages
-                    .OrderByDescending(m => m.Created)
-                    .Select(m => new
-                    {
-                        m.Content,
-                        m.Created,
-                        SenderName = m.Sender != null
-                            ? $"{m.Sender.FirstName} {m.Sender.LastName}"
-                            : "Guest"
-                    })
-                    .FirstOrDefault(),
-                UnreadCount = t.ChatRoom.Messages
-                    .Count(m => m.SenderId != agentId && m.Created > t.ChatRoom.Members
-                        .Where(mem => mem.UserId == agentId)
-                        .Select(mem => mem.LastSeenAt)
-                        .FirstOrDefault())
-            })
-            .ToListAsync();
+            var tickets = await query
+                .OrderByDescending(t => t.Created)
+                .Select(t => new
+                {
+                    t.Id,
+                    t.Status,
+                    t.Created,
+                    t.ClosedAt,
+                    ChatRoomId = t.ChatRoomId,
+                    RequesterName = t.RequesterUser != null
+                        ? $"{t.RequesterUser.FirstName} {t.RequesterUser.LastName}"
+                        : t.RequesterGuest!.Name ?? "Guest",
+                    RequesterEmail = t.RequesterUser != null
+                        ? t.RequesterUser.Email
+                        : t.RequesterGuest!.Email,
+                    LastMessage = t.ChatRoom.Messages
+                        .OrderByDescending(m => m.Created)
+                        .Select(m => new
+                        {
+                            m.Content,
+                            m.Created,
+                            SenderName = m.Sender != null
+                                ? $"{m.Sender.FirstName} {m.Sender.LastName}"
+                                : "Guest"
+                        })
+                        .FirstOrDefault(),
+                    UnreadCount = t.ChatRoom.Messages
+                        .Count(m => m.SenderId != agentId && m.Created > t.ChatRoom.Members
+                            .Where(mem => mem.UserId == agentId)
+                            .Select(mem => mem.LastSeenAt)
+                            .FirstOrDefault())
+                })
+                .ToListAsync();
 
-        return Results.Ok(tickets);
+            return Results.Ok(tickets);
+        }
+
+        return Results.Empty;
     }
 
     private static async Task<IResult> TransferTicket(
@@ -224,7 +237,7 @@ public class Support : EndpointGroupBase
         UpdateAgentStatusRequest request,
         IAgentAssignmentService agentService)
     {
-        var agentId = context.User.FindFirst("sub")?.Value!;
+        var agentId = int.Parse(context.User.FindFirst("sub")?.Value!);
         await agentService.UpdateAgentStatusAsync(agentId, request.Status);
         return Results.Ok();
     }
@@ -277,7 +290,7 @@ public class Support : EndpointGroupBase
         dbContext.ChatMessages.Add(closingMessage);
 
         // Update agent active chats
-        if (!string.IsNullOrEmpty(ticket.AssignedAgentUserId))
+        if (!string.IsNullOrEmpty(ticket.AssignedAgentUserId.ToString()))
         {
             var agent = await dbContext.Users.FindAsync(ticket.AssignedAgentUserId);
             if (agent is { CurrentActiveChats: > 0 })
@@ -320,7 +333,7 @@ public class Support : EndpointGroupBase
     );
 
     public record TransferTicketRequest(
-        string NewAgentId,
+        int NewAgentId,
         string? Reason
     );
 

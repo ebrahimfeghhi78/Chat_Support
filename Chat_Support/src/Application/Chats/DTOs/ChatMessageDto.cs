@@ -29,13 +29,13 @@ public class ChatMessageDto
     {
         public Mapping()
         {
-            string? currentUserId = null;
+            int currentUserId = 0;
 
             CreateMap<ChatMessage, ChatMessageDto>()
                 .ForMember(dest => dest.SenderFullName,
                     opt => opt.MapFrom(src => $"{src.Sender.FirstName} {src.Sender.LastName}"))
                 .ForMember(dest => dest.SenderAvatarUrl,
-                    opt => opt.MapFrom(src => src.Sender.Avatar))
+                    opt => opt.MapFrom(src => src.Sender.ImageName))
                 .ForMember(dest => dest.Timestamp,
                     opt => opt.MapFrom(src => src.Created))
                 .ForMember(dest => dest.RepliedMessageContent,

@@ -35,10 +35,10 @@ public class PerformanceBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequ
         if (elapsedMilliseconds > 500)
         {
             var requestName = typeof(TRequest).Name;
-            var userId = _user.Id ?? string.Empty;
+            int userId = (int)_user.Id! ;
             var userName = string.Empty;
 
-            if (!string.IsNullOrEmpty(userId))
+            if (!string.IsNullOrEmpty(userId.ToString()))
             {
                 userName = await _identityService.GetUserNameAsync(userId);
             }

@@ -4,7 +4,7 @@ using Chat_Support.Domain.Entities;
 namespace Chat_Support.Application.Chats.Commands;
 
 // DTO for the reaction data sent from client and broadcasted
-public record MessageReactionDto(int MessageId, string UserId, string UserFullName, string Emoji, int ChatRoomId, bool IsRemoved);
+public record MessageReactionDto(int MessageId, int UserId, string UserFullName, string Emoji, int ChatRoomId, bool IsRemoved);
 public record ReactToMessageCommand(int MessageId, string Emoji) : IRequest<MessageReactionDto>;
 public class ReactToMessageCommandHandler : IRequestHandler<ReactToMessageCommand, MessageReactionDto>
 {
@@ -66,7 +66,7 @@ public class ReactToMessageCommandHandler : IRequestHandler<ReactToMessageComman
 
         // UserFullName به جای UserName
         var userFullName = $" {userEntity.FirstName} {userEntity.LastName}";
-        var reactionDto = new MessageReactionDto(request.MessageId, userId!, userFullName, request.Emoji, message.ChatRoomId, isRemoved);
+        var reactionDto = new MessageReactionDto(request.MessageId, userId, userFullName, request.Emoji, message.ChatRoomId, isRemoved);
 
         await _chatHubService.SendMessageUpdateToRoom(message.ChatRoomId.ToString(), reactionDto, "MessageReacted");
 

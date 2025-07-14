@@ -13,7 +13,7 @@ public partial class Testing
     private static ITestDatabase _database = null!;
     private static CustomWebApplicationFactory _factory = null!;
     private static IServiceScopeFactory _scopeFactory = null!;
-    private static string? _userId;
+    private static int _userId;
 
     [OneTimeSetUp]
     public async Task RunBeforeAnyTests()
@@ -43,7 +43,7 @@ public partial class Testing
         await mediator.Send(request);
     }
 
-    public static string? GetUserId()
+    public static int? GetUserId()
     {
         return _userId;
     }
@@ -82,9 +82,9 @@ public partial class Testing
 
         if (result.Succeeded)
         {
-            _userId = user.Id;
+            _userId = int.Parse(user.Id);
 
-            return _userId;
+            return _userId.ToString();
         }
 
         var errors = string.Join(Environment.NewLine, result.ToApplicationResult().Errors);
@@ -100,9 +100,10 @@ public partial class Testing
         }
         catch (Exception)
         {
+            // ignored
         }
 
-        _userId = null;
+        _userId = 0;
     }
 
     public static async Task<TEntity?> FindAsync<TEntity>(params object[] keyValues)

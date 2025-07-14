@@ -23,7 +23,7 @@ public class EditMessageCommandHandler : IRequestHandler<EditMessageCommand, Cha
 
     public async Task<ChatMessageDto> Handle(EditMessageCommand request, CancellationToken cancellationToken)
     {
-        var userId = _user.Id ?? throw new UnauthorizedAccessException();
+        var userId = _user.Id;
 
         // ۱. خواندن پیام با تمام روابط لازم برای ساخت یک DTO کامل
         var message = await _context.ChatMessages

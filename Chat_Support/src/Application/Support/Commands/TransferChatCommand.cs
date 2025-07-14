@@ -6,7 +6,7 @@ namespace Chat_Support.Application.Support.Commands;
 
 public record TransferChatCommand(
     int TicketId,
-    string NewAgentId,
+    int NewAgentId,
     string? TransferReason
 ) : IRequest<bool>;
 
@@ -40,7 +40,7 @@ public class TransferChatCommandHandler : IRequestHandler<TransferChatCommand, b
         ticket.Status = SupportTicketStatus.Transferred;
 
         // Remove old agent from room
-        if (!string.IsNullOrEmpty(oldAgentId))
+        if (!string.IsNullOrEmpty(oldAgentId.ToString()))
         {
             var oldMember = ticket.ChatRoom.Members
                 .FirstOrDefault(m => m.UserId == oldAgentId);
@@ -69,8 +69,8 @@ public class TransferChatCommandHandler : IRequestHandler<TransferChatCommand, b
 
         // Notify via SignalR
         await _chatHubService.NotifyAgentOfNewChat(request.NewAgentId, ticket.ChatRoomId);
-        if (!string.IsNullOrEmpty(oldAgentId))
-            await _chatHubService.NotifyChatTransferred(oldAgentId, ticket.ChatRoomId);
+        if (!string.IsNullOrEmpty(oldAgentId.ToString()))
+            await _chatHubService.NotifyChatTransferred((int)oldAgentId!, ticket.ChatRoomId);
 
         return true;
     }

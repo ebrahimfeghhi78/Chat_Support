@@ -2,7 +2,7 @@
 
 public class UserConnection:BaseAuditableEntity
 {
-    public string? UserId { get; set; }
+    public int? UserId { get; set; }
     public string ConnectionId { get; set; } = string.Empty;
     public DateTime ConnectedAt { get; set; }
     public bool IsActive { get; set; }

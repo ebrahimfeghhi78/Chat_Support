@@ -23,7 +23,7 @@ public class DeleteMessageCommandHandler : IRequestHandler<DeleteMessageCommand,
 
     public async Task<bool> Handle(DeleteMessageCommand request, CancellationToken cancellationToken)
     {
-        var userId = _user.Id ?? throw new UnauthorizedAccessException();
+        var userId = _user.Id;
 
         // کوئری اولیه برای خواندن پیام و تمام روابط مورد نیاز
         var message = await _context.ChatMessages
@@ -66,7 +66,7 @@ public class DeleteMessageCommandHandler : IRequestHandler<DeleteMessageCommand,
 
         foreach (var member in chatRoom.Members)
         {
-            if (string.IsNullOrEmpty(member.UserId)) continue;
+            if (string.IsNullOrEmpty(member.UserId.ToString())) continue;
 
             // ۱. ابتدا یک DTO کامل با استفاده از AutoMapper بسازید
             var roomUpdateDto = _mapper.Map<ChatRoomDto>(chatRoom);
@@ -79,7 +79,7 @@ public class DeleteMessageCommandHandler : IRequestHandler<DeleteMessageCommand,
 
             // آپدیت اطلاعات آخرین پیام
             roomUpdateDto.LastMessageContent = newLastMessage?.Content;
-            roomUpdateDto.LastMessageTime = newLastMessage?.Created;
+            roomUpdateDto.LastMessageTime = newLastMessage?.Created.DateTime;
             roomUpdateDto.LastMessageSenderName = newLastMessage?.Sender != null ? $"{newLastMessage.Sender.FirstName} {newLastMessage.Sender.LastName}" : null;
             roomUpdateDto.MessageCount = chatRoom.Messages.Count(m => !m.IsDeleted && m.Id != message.Id);
 
@@ -91,7 +91,7 @@ public class DeleteMessageCommandHandler : IRequestHandler<DeleteMessageCommand,
                 if (otherUser != null)
                 {
                     roomUpdateDto.Name = $"{otherUser.FirstName} {otherUser.LastName}";
-                    roomUpdateDto.Avatar = otherUser.Avatar;
+                    roomUpdateDto.Avatar = otherUser.ImageName;
                 }
             }
 

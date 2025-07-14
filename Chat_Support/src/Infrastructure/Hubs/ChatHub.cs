@@ -24,7 +24,7 @@ public class ChatHub : Hub
     {
         var userId = _user.Id;
 
-        if (string.IsNullOrEmpty(userId))
+        if (string.IsNullOrEmpty(userId.ToString()))
         {
             Context.Abort();
             return;
@@ -69,20 +69,19 @@ public class ChatHub : Hub
         // Stop typing indicators for this connection
         if (_typingUsers.TryRemove(Context.ConnectionId, out int roomIdWhenDisconnected))
         {
-            if (userId != null)
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null)
             {
-                var user = await _context.Users.FindAsync(userId);
-                if (user != null)
-                {
-                    var typingDto = new TypingIndicatorDto(
-                        userId,
-                        $" {user.FirstName} {user.LastName}",
-                        roomIdWhenDisconnected,
-                        false
-                    );
-                    await Clients.Group(roomIdWhenDisconnected.ToString()).SendAsync("UserTyping", typingDto);
-                }
+                var typingDto = new TypingIndicatorDto(
+                    userId,
+                    $" {user.FirstName} {user.LastName}",
+                    roomIdWhenDisconnected,
+                    false
+                );
+                await Clients.Group(roomIdWhenDisconnected.ToString()).SendAsync("UserTyping", typingDto);
             }
+
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -101,7 +100,7 @@ public class ChatHub : Hub
     public async Task StartTyping(string roomIdStr)
     {
         var userId = _user.Id;
-        if (string.IsNullOrEmpty(userId) || !int.TryParse(roomIdStr, out int roomId))
+        if (string.IsNullOrEmpty(userId.ToString()) || !int.TryParse(roomIdStr, out int roomId))
             return;
 
         var user = await _context.Users.FindAsync(userId);
@@ -132,7 +131,7 @@ public class ChatHub : Hub
     public async Task StopTyping(string? roomIdStr = null)
     {
         var userId = _user.Id;
-        if (string.IsNullOrEmpty(userId)) return;
+        if (string.IsNullOrEmpty(userId.ToString())) return;
 
 
         if (roomIdStr != null && int.TryParse(roomIdStr, out int roomIdFromParam))
@@ -217,7 +216,7 @@ public class ChatHub : Hub
         // اطلاع به فرستنده پیام
         if (message.SenderId != null && message.SenderId != userId)
         {
-            await Clients.User(message.SenderId)
+            await Clients.User(message.SenderId.ToString() ?? string.Empty)
                 .SendAsync("MessageRead", new { MessageId = msgId, ReadBy = userId, ChatRoomId = roomIdInt });
         }
 
@@ -225,7 +224,7 @@ public class ChatHub : Hub
         await UpdateUnreadCount(roomIdInt);
     }
 
-    private async Task<List<int>> GetUserChatRoomIds(string? userId)
+    private async Task<List<int>> GetUserChatRoomIds(int? userId)
     {
         return await Task.Run(() =>
             _context.ChatRoomMembers
@@ -255,11 +254,8 @@ public class ChatHub : Hub
                 .CountAsync();
 
             // ارسال آپدیت به کلاینت‌های کاربر
-            if (userId != null)
-            {
-                await Clients.User(userId)
-                    .SendAsync("UnreadCountUpdate", new { RoomId = roomId, UnreadCount = unreadCount });
-            }
+            await Clients.User(userId.ToString() ?? string.Empty)
+                .SendAsync("UnreadCountUpdate", new { RoomId = roomId, UnreadCount = unreadCount });
         }
         catch (Exception ex)
         {

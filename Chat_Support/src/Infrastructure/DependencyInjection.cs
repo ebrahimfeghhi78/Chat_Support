@@ -41,6 +41,10 @@ public static class DependencyInjection
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddTransient<IIdentityService, IdentityService>();
 
+        builder.Services.AddScoped<IAgentAssignmentService, Service.AgentAssignmentService>();
+        builder.Services.AddScoped<IChatHubService, Service.ChatHubService>();
+        builder.Services.AddScoped<IFileStorageService, Service.FileStorageService>();
+
         builder.Services.AddAuthorization(options =>
             options.AddPolicy(Policies.CanPurge, policy => policy.RequireRole(Roles.Administrator)));
     }

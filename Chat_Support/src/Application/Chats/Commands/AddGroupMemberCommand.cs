@@ -7,7 +7,7 @@ namespace Chat_Support.Application.Chats.Commands;
 
 public record AddGroupMemberCommand(
     int ChatRoomId,
-    List<string> UserIds,
+    List<int> UserIds,
     ChatRole Role = ChatRole.Member
 ) : IRequest<bool>;
 

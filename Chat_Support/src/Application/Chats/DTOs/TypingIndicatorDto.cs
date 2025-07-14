@@ -1,7 +1,7 @@
 ﻿namespace Chat_Support.Application.Chats.DTOs;
 
 public record TypingIndicatorDto(
-    string? UserId,
+    int? UserId,
     string UserFullName,
     int ChatRoomId,
     bool IsTyping

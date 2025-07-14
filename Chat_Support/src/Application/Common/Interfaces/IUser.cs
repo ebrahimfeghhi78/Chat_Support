@@ -2,5 +2,6 @@
 
 public interface IUser
 {
-    string? Id { get; }
+    int Id { get; }
+    int RegionId { get; set; }
 }
