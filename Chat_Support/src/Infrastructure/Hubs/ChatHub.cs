@@ -70,7 +70,7 @@ public class ChatHub : Hub
         if (_typingUsers.TryRemove(Context.ConnectionId, out int roomIdWhenDisconnected))
         {
 
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _context.KciUsers.FindAsync(userId);
             if (user != null)
             {
                 var typingDto = new TypingIndicatorDto(
@@ -103,7 +103,7 @@ public class ChatHub : Hub
         if (string.IsNullOrEmpty(userId.ToString()) || !int.TryParse(roomIdStr, out int roomId))
             return;
 
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _context.KciUsers.FindAsync(userId);
         if (user == null) return;
 
         if (_typingUsers.TryGetValue(Context.ConnectionId, out int previousRoomId))
@@ -140,7 +140,7 @@ public class ChatHub : Hub
             {
                 if (_typingUsers.TryRemove(Context.ConnectionId, out _))
                 {
-                    var user = await _context.Users.FindAsync(userId);
+                    var user = await _context.KciUsers.FindAsync(userId);
                     if (user != null)
                     {
                         var typingDto = new TypingIndicatorDto(userId, $" {user.FirstName} {user.LastName}", roomIdFromParam, false);
@@ -154,7 +154,7 @@ public class ChatHub : Hub
         {
             if (_typingUsers.TryRemove(Context.ConnectionId, out int currentTypingRoomId))
             {
-                var user = await _context.Users.FindAsync(userId);
+                var user = await _context.KciUsers.FindAsync(userId);
                 if (user != null)
                 {
                     var typingDto = new TypingIndicatorDto(userId, $" {user.FirstName} {user.LastName}", currentTypingRoomId, false);

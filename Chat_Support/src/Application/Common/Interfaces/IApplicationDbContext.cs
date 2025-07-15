@@ -1,16 +1,17 @@
 ﻿using Chat_Support.Domain.Entities;
 
+
 namespace Chat_Support.Application.Common.Interfaces;
 public interface IApplicationDbContext
 {
     DbSet<TodoList> TodoLists { get; }
     DbSet<TodoItem> TodoItems { get; }
 
-    DbSet<User> Users { get; }
-    DbSet<Group> Groups { get; }
-    DbSet<UserGroup> UserGroups { get; }
+    DbSet<KciUser> KciUsers { get; }
+    DbSet<KciGroup> KciGroups { get; }
+    DbSet<KciAssignedUser> KciAssignedUsers { get; }
     DbSet<Region> Regions { get; }
-    DbSet<UserRegion> UserRegions { get; }
+    DbSet<CmsUserRegion> CmsUserRegions { get; }
     DbSet<SupportAgent> SupportAgents { get; }
     DbSet<UserFacility> UserFacilities { get; }
     DbSet<GroupFacility> GroupFacilities { get; }

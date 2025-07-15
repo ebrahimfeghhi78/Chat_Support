@@ -1,4 +1,6 @@
-﻿namespace Chat_Support.Domain.Entities;
+﻿
+
+namespace Chat_Support.Domain.Entities;
 
 public class ChatMessage:BaseAuditableEntity
 {
@@ -13,7 +15,7 @@ public class ChatMessage:BaseAuditableEntity
     public bool IsDeleted { get; set; }
     public int? ReplyToMessageId { get; set; }
 
-    public virtual User Sender { get; set; } = null!;
+    public virtual KciUser Sender { get; set; } = null!;
     public virtual ChatRoom ChatRoom { get; set; } = null!;
     public virtual ChatMessage? ReplyToMessage { get; set; }
     public virtual ICollection<ChatMessage> Replies { get; set; } = new List<ChatMessage>();

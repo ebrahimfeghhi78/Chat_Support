@@ -1,6 +1,7 @@
 ﻿using Chat_Support.Application.Common.Interfaces;
 using Chat_Support.Domain.Entities;
 using Chat_Support.Domain.Enums;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace Chat_Support.Infrastructure.Service;
@@ -14,10 +15,10 @@ public class AgentAssignmentService : IAgentAssignmentService
         _context = context;
     }
 
-    public async Task<User?> GetBestAvailableAgentAsync(CancellationToken cancellationToken = default)
+    public async Task<KciUser?> GetBestAvailableAgentAsync(CancellationToken cancellationToken = default)
     {
         // یافتن Agent های آنلاین با ظرفیت
-        var availableAgents = await _context.Users
+        var availableAgents = await _context.KciUsers
             .Where(u => u.AgentStatus == AgentStatus.Available
                 && u.CurrentActiveChats < u.MaxConcurrentChats)
             .OrderBy(u => u.CurrentActiveChats) // کمترین تعداد چت فعال
@@ -26,7 +27,7 @@ public class AgentAssignmentService : IAgentAssignmentService
         if (availableAgents != null)
         {
             // افزایش تعداد چت های فعال
-            availableAgents.CurrentActiveChats = (availableAgents.CurrentActiveChats ?? 0) + 1;
+            availableAgents.CurrentActiveChats += 1;
 
             // اگر به حداکثر ظرفیت رسید، وضعیت را Busy کن
             if (availableAgents.CurrentActiveChats >= availableAgents.MaxConcurrentChats)
@@ -50,7 +51,7 @@ public class AgentAssignmentService : IAgentAssignmentService
 
     public async Task UpdateAgentStatusAsync(int agentId, AgentStatus status, CancellationToken cancellationToken = default)
     {
-        var agent = await _context.Users.FindAsync(new object[] { agentId }, cancellationToken);
+        var agent = await _context.KciUsers.FindAsync(new object[] { agentId }, cancellationToken);
         if (agent != null)
         {
             agent.AgentStatus = status;

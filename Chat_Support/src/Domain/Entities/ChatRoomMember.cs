@@ -1,4 +1,6 @@
-﻿namespace Chat_Support.Domain.Entities;
+﻿
+
+namespace Chat_Support.Domain.Entities;
 
 public class ChatRoomMember : BaseAuditableEntity
 {
@@ -11,6 +13,6 @@ public class ChatRoomMember : BaseAuditableEntity
     public bool IsDeleted { get; set; }
     public int? LastReadMessageId { get; set; }
 
-    public virtual User User { get; set; } = null!;
+    public virtual KciUser User { get; set; } = null!;
     public virtual ChatRoom ChatRoom { get; set; } = null!;
 }

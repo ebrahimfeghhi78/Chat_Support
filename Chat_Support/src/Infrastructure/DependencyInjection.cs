@@ -24,14 +24,17 @@ public static class DependencyInjection
         builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
             options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
-            options.UseSqlServer(connectionString).AddAsyncSeeding(sp);
+            options.UseSqlServer(connectionString)
+                .EnableSensitiveDataLogging()
+                .EnableDetailedErrors();
+            //.AddAsyncSeeding(sp);
         });
 
         builder.EnrichSqlServerDbContext<ApplicationDbContext>();
 
         builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
-        builder.Services.AddScoped<ApplicationDbContextInitialiser>();
+        //builder.Services.AddScoped<ApplicationDbContextInitialiser>();
 
         builder.Services
             .AddDefaultIdentity<ApplicationUser>()

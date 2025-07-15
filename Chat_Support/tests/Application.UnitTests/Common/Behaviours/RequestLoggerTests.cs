@@ -1,5 +1,4 @@
-﻿using Chat_Support.Application.Common.Behaviours;
-using Chat_Support.Application.Common.Interfaces;
+﻿using Chat_Support.Application.Common.Interfaces;
 using Chat_Support.Application.TodoItems.Commands.CreateTodoItem;
 using Microsoft.Extensions.Logging;
 using Moq;

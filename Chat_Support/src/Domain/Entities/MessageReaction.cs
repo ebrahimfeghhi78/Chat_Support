@@ -1,4 +1,6 @@
-﻿namespace Chat_Support.Domain.Entities;
+﻿
+
+namespace Chat_Support.Domain.Entities;
 
 public class MessageReaction : BaseAuditableEntity
 {
@@ -7,5 +9,5 @@ public class MessageReaction : BaseAuditableEntity
     public string Emoji { get; set; } = string.Empty;
 
     public virtual ChatMessage Message { get; set; } = null!;
-    public virtual User User { get; set; } = null!;
+    public virtual KciUser User { get; set; } = null!;
 }

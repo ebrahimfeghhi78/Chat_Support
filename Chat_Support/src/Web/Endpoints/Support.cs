@@ -245,8 +245,8 @@ public class Support : EndpointGroupBase
     private static async Task<IResult> GetAvailableAgents(
         IApplicationDbContext dbContext)
     {
-        var agents = await dbContext.Users
-            .Where(u => u.AgentStatus != null && u.AgentStatus != AgentStatus.Offline)
+        var agents = await dbContext.KciUsers
+            .Where(u => u.AgentStatus != AgentStatus.Offline)
             .Select(u => new
             {
                 u.Id,
@@ -255,7 +255,7 @@ public class Support : EndpointGroupBase
                 u.CurrentActiveChats,
                 u.MaxConcurrentChats,
                 WorkloadPercentage = u.MaxConcurrentChats > 0
-                    ? (u.CurrentActiveChats ?? 0) * 100 / u.MaxConcurrentChats
+                    ? (u.CurrentActiveChats) * 100 / u.MaxConcurrentChats
                     : 0
             })
             .OrderBy(u => u.WorkloadPercentage)
@@ -292,7 +292,7 @@ public class Support : EndpointGroupBase
         // Update agent active chats
         if (!string.IsNullOrEmpty(ticket.AssignedAgentUserId.ToString()))
         {
-            var agent = await dbContext.Users.FindAsync(ticket.AssignedAgentUserId);
+            var agent = await dbContext.KciUsers.FindAsync(ticket.AssignedAgentUserId);
             if (agent is { CurrentActiveChats: > 0 })
             {
                 agent.CurrentActiveChats--;

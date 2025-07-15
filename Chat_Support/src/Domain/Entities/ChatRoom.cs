@@ -1,4 +1,6 @@
-﻿namespace Chat_Support.Domain.Entities;
+﻿
+
+namespace Chat_Support.Domain.Entities;
 
 public class ChatRoom : BaseAuditableEntity
 {
@@ -13,7 +15,7 @@ public class ChatRoom : BaseAuditableEntity
     public ChatRoomType ChatRoomType { get; set; } = ChatRoomType.UserToUser;
     
     public virtual Region? Region { get; set; }
-    public new virtual User? CreatedBy { get; set; }
+    public new virtual KciUser? CreatedBy { get; set; }
     public virtual ICollection<ChatRoomMember> Members { get; set; } = new List<ChatRoomMember>();
     public virtual ICollection<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
 }

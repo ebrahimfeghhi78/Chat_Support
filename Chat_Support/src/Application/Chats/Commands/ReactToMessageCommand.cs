@@ -22,7 +22,7 @@ public class ReactToMessageCommandHandler : IRequestHandler<ReactToMessageComman
     public async Task<MessageReactionDto> Handle(ReactToMessageCommand request, CancellationToken cancellationToken)
     {
         var userId = _user.Id;
-        var userEntity = await _context.Users.FindAsync(userId);
+        var userEntity = await _context.KciUsers.FindAsync(userId);
         if (userEntity == null)
         {
             throw new UnauthorizedAccessException("User not found.");

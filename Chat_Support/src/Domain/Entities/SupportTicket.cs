@@ -1,9 +1,11 @@
-﻿namespace Chat_Support.Domain.Entities;
+﻿
+
+namespace Chat_Support.Domain.Entities;
 
 public class SupportTicket : BaseAuditableEntity
 {
     public int? RequesterUserId { get; set; }
-    public virtual User? RequesterUser { get; set; }
+    public virtual KciUser? RequesterUser { get; set; }
 
     public int? RequesterGuestId { get; set; }
     public virtual GuestUser? RequesterGuest { get; set; }

@@ -5,10 +5,10 @@ using Chat_Support.Application.Chats.Queries;
 using Chat_Support.Application.Common.Interfaces;
 using Chat_Support.Domain.Entities;
 using Chat_Support.Domain.Enums;
+
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
 
 namespace Chat_Support.Web.Endpoints;
 
@@ -275,12 +275,12 @@ public class Chat : EndpointGroupBase
     private static async Task<IResult> SearchUsers(
         string query,
         IApplicationDbContext context,
-        User currentUser)
+        [FromServices] KciUser currentUser)
     {
         var activeRegionId = currentUser.RegionId;
         var currentUserId = currentUser.Id;
 
-        var users = await context.Users
+        var users = await context.KciUsers
             .Where(u => u.Id != currentUserId)
             .Where(u => u.UserRegions.Any(ru => ru.RegionId == activeRegionId))
             .Where(u => u.UserName!.Contains(query) ||

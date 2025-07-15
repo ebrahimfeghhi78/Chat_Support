@@ -1,6 +1,5 @@
 using Chat_Support.Application;
 using Chat_Support.Infrastructure;
-using Chat_Support.Infrastructure.Data;
 using Chat_Support.ServiceDefaults;
 using Chat_Support.Web;
 
@@ -19,7 +18,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    await app.InitialiseDatabaseAsync();
+//    await app.InitialiseDatabaseAsync();
 }
 else
 {

@@ -1,4 +1,5 @@
 ﻿using Chat_Support.Domain.Entities;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,7 +14,7 @@ public class ChatRoomConfiguration : IEntityTypeConfiguration<ChatRoom>
         entity.Property(e => e.Description).HasMaxLength(500);
         entity.Property(e => e.Avatar).HasMaxLength(500);
      
-        entity.HasOne<User>()
+        entity.HasOne<KciUser>()
             .WithMany(u => u.CreatedChatRooms)
             .HasForeignKey(e => e.CreatedById)
             .IsRequired(false)

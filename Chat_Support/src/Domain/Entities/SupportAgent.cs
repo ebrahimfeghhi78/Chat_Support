@@ -1,4 +1,6 @@
-﻿namespace Chat_Support.Domain.Entities;
+﻿
+
+namespace Chat_Support.Domain.Entities;
 
 public class SupportAgent : BaseAuditableEntity
 {
@@ -7,6 +9,6 @@ public class SupportAgent : BaseAuditableEntity
     public int? MaxConcurrentChats { get; set; }
     public DateTime? LastActivityAt { get; set; }
 
-    public virtual User? User { get; set; }
+    public virtual KciUser? User { get; set; }
     public virtual ICollection<SupportTicket>? AssignedTickets { get; set; }
 }

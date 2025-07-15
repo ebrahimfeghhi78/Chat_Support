@@ -63,7 +63,7 @@ public class AddGroupMemberCommandHandler : IRequestHandler<AddGroupMemberComman
             _context.ChatRoomMembers.Add(member);
 
             // System message
-            var user = await _context.Users.FindAsync(new object[] { userId }, cancellationToken);
+            var user = await _context.KciUsers.FindAsync(new object[] { userId }, cancellationToken);
             var systemMessage = new ChatMessage
             {
                 Content = $"{user?.FirstName} {user?.LastName} was added to the group",

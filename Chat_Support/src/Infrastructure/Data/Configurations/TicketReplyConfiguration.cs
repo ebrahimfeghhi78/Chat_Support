@@ -25,7 +25,7 @@ public class TicketReplyConfiguration : IEntityTypeConfiguration<TicketReply>
 
         builder.Property(e => e.Created)
             .HasDefaultValueSql("(getdate())")
-            .HasColumnType("datetime");
+            .HasColumnType("datetimeoffset");
 
         builder.HasOne(d => d.User)
             .WithMany(p => p.TicketReplies)

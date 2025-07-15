@@ -1,4 +1,6 @@
-﻿namespace Chat_Support.Domain.Entities;
+﻿
+
+namespace Chat_Support.Domain.Entities;
 
 public class MessageStatus:BaseAuditableEntity
 {
@@ -8,5 +10,5 @@ public class MessageStatus:BaseAuditableEntity
     public DateTime StatusAt { get; set; }
 
     public virtual ChatMessage Message { get; set; } = null!;
-    public virtual User User { get; set; } = null!;
+    public virtual KciUser User { get; set; } = null!;
 }

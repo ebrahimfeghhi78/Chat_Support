@@ -1,4 +1,6 @@
-﻿namespace Chat_Support.Domain.Entities;
+﻿
+
+namespace Chat_Support.Domain.Entities;
 
 public class ChatFileMetadata : BaseAuditableEntity
 {
@@ -12,5 +14,5 @@ public class ChatFileMetadata : BaseAuditableEntity
     public MessageType MessageType { get; set; }
 
     public virtual ChatRoom ChatRoom { get; set; } = null!;
-    public virtual User UploadedBy { get; set; } = null!;
+    public virtual KciUser UploadedBy { get; set; } = null!;
 }
