@@ -57,7 +57,7 @@ public class Chat : EndpointGroupBase
         [FromForm] MessageType type,
         HttpContext httpContext)
     {
-        if (file == null || file.Length == 0)
+        if (file.Length == 0)
             return TypedResults.BadRequest("No file was uploaded");
 
         var command = new UploadChatFileCommand
