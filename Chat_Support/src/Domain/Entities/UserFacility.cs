@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Chat_Support.Domain.Entities;
 
-[Keyless]
 [Index("Id", Name = "IX_UserFacilities")]
 [Index("UserId", Name = "IX_UserFacilities_1")]
 [Index("TableName", Name = "IX_UserFacilities_2")]
@@ -18,6 +17,7 @@ public partial class UserFacility
     /// <summary>
     /// کلید
     /// </summary>
+    [Key]
     [Column("id")]
     public int Id { get; set; }
 

@@ -40,7 +40,6 @@ const ChatRoomList = ({rooms = [], currentRoom, onRoomSelect, onNewRoom, isLoadi
     try {
       // فقط کاربران را جستجو کنید
       const users = await chatApi.searchUsers(searchValue);
-
       // برای فیلتر کردن، از پراپ rooms که اکنون کامل است استفاده کنید
       const filteredUsers = filterUsersWithoutChat(users, rooms);
       setUsersWithoutActiveChat(filteredUsers);

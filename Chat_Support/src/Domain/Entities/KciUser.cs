@@ -143,7 +143,7 @@ public partial class KciUser
     public virtual ICollection<ChatRoom> CreatedChatRooms { get; set; } = new List<ChatRoom>();
 
     //فیلد های جدید
-    public AgentStatus AgentStatus { get; set; } //جدید
+    public AgentStatus? AgentStatus { get; set; } //جدید
     public int CurrentActiveChats { get; set; } //جدید
     public int MaxConcurrentChats { get; set; } //جدید
 }

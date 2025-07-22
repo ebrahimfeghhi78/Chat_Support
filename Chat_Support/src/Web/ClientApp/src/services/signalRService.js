@@ -15,10 +15,14 @@ class SignalRService {
     try {
       // تعیین آدرس SignalR بر اساس محیط
       const hubUrl = import.meta.env.MODE === 'development' ? 'https://localhost:5001/chathub' : window.location.origin + '/chathub';
-
+      console.log('[SignalR] Hub URL:', hubUrl);
+      console.log('[SignalR] Access token to be sent:', token);
       this.connection = new HubConnectionBuilder()
         .withUrl(hubUrl, {
-          accessTokenFactory: () => token,
+          accessTokenFactory: () => {
+            console.log('[SignalR] Access token requested');
+            return token;
+          },
         })
         .configureLogging(LogLevel.Information)
         .build();
@@ -26,15 +30,17 @@ class SignalRService {
       // Set up event handlers
       this.setupEventHandlers();
 
+      console.log('[SignalR] Starting connection...');
       await this.connection.start();
       this.isConnected = true;
+      console.log('[SignalR] Connection started successfully');
 
       // Notify listeners about connection status
       this.notifyListeners('connectionStatusChanged', true);
 
       return true;
     } catch (error) {
-      console.error('SignalR Connection Error:', error);
+      console.error('[SignalR] Connection Error:', error);
       this.isConnected = false;
       this.notifyListeners('connectionStatusChanged', false);
       return false;
@@ -56,11 +62,13 @@ class SignalRService {
 
     // Listen for room list updates
     this.connection.on('ReceiveChatRoomUpdate', (roomData) => {
+      console.log('[SignalR] ReceiveChatRoomUpdate:', roomData);
       this.notifyListeners('receiveChatRoomUpdate', roomData);
     });
 
     // Handle connection closed
     this.connection.onclose((error) => {
+      console.warn('[SignalR] Connection closed', error);
       this.isConnected = false;
       this.notifyListeners('connectionStatusChanged', false);
 
@@ -70,32 +78,38 @@ class SignalRService {
 
     // Handle reconnecting
     this.connection.onreconnecting((error) => {
+      console.warn('[SignalR] Reconnecting...', error);
       this.notifyListeners('connectionStatusChanged', false);
     });
 
     // Handle reconnected
     this.connection.onreconnected((connectionId) => {
+      console.log('[SignalR] Reconnected. ConnectionId:', connectionId);
       this.isConnected = true;
       this.notifyListeners('connectionStatusChanged', true);
     });
 
     // Listen for new messages
     this.connection.on('ReceiveMessage', (message) => {
+      console.log('[SignalR] ReceiveMessage:', message);
       this.notifyListeners('messageReceived', message);
     });
 
     // Listen for typing indicators
     this.connection.on('UserTyping', (typingData) => {
+      console.log('[SignalR] UserTyping:', typingData);
       this.notifyListeners('userTyping', typingData);
     });
 
     // Listen for message read status
     this.connection.on('MessageRead', (readData) => {
+      console.log('[SignalR] MessageRead:', readData);
       this.notifyListeners('messageRead', readData);
     });
 
     // UserOnlineStatus از بک‌اند می‌آید
     this.connection.on('UserOnlineStatus', (userData) => {
+      console.log('[SignalR] UserOnlineStatus:', userData);
       // userData: { UserId, IsOnline, Avatar, UserName }
       // بر اساس IsOnline، رویداد مناسب را در کلاینت notify کنید
       if (userData.IsOnline) {
@@ -106,20 +120,24 @@ class SignalRService {
     });
 
     this.connection.on('MessageEdited', (messageDto) => {
+      console.log('[SignalR] MessageEdited:', messageDto);
       this.notifyListeners('MessageEdited', messageDto);
     });
 
     this.connection.on('UnreadCountUpdate', (data) => {
       // data: { roomId, unreadCount }
+      console.log('[SignalR] UnreadCountUpdate:', data);
       this.notifyListeners('unreadCountUpdate', data);
     });
 
     this.connection.on('MessageDeleted', (payload) => {
+      console.log('[SignalR] MessageDeleted:', payload);
       this.notifyListeners('MessageDeleted', payload);
     });
 
     this.connection.on('MessageReacted', (reactionDto) => {
       // reactionDto از نوع MessageReactionDto است
+      console.log('[SignalR] MessageReacted:', reactionDto);
       this.notifyListeners('MessageReacted', reactionDto);
     });
   }
@@ -193,11 +211,13 @@ class SignalRService {
   async reconnect() {
     if (!this.isConnected && this.connection) {
       try {
+        console.log('[SignalR] Attempting to reconnect...');
         await this.connection.start();
         this.isConnected = true;
+        console.log('[SignalR] Reconnected successfully');
         this.notifyListeners('connectionStatusChanged', true);
       } catch (error) {
-        console.error('Reconnection failed:', error);
+        console.error('[SignalR] Reconnection failed:', error);
         setTimeout(() => this.reconnect(), 5000);
       }
     }

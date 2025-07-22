@@ -37,7 +37,7 @@ public class ChatMessageDto
                 .ForMember(dest => dest.SenderAvatarUrl,
                     opt => opt.MapFrom(src => src.Sender.ImageName))
                 .ForMember(dest => dest.Timestamp,
-                    opt => opt.MapFrom(src => src.Created))
+                    opt => opt.MapFrom(src => src.Created.DateTime))
                 .ForMember(dest => dest.RepliedMessageContent,
                     opt => opt.MapFrom(src => src.ReplyToMessage != null ? (src.ReplyToMessage.Content.Length > 70 ? src.ReplyToMessage.Content.Substring(0, 70) + "..." : src.ReplyToMessage.Content) : null))
                 .ForMember(dest => dest.RepliedMessageSenderName,

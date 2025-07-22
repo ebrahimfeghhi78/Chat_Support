@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Chat_Support.Domain.Entities;
 
-[Keyless]
 [Index("Id", Name = "IX_GroupFacilities")]
 [Index("GroupId", Name = "IX_GroupFacilities_1")]
 [Index("TableName", Name = "IX_GroupFacilities_2")]
@@ -19,6 +18,7 @@ public partial class GroupFacility
     /// <summary>
     /// کلید
     /// </summary>
+    [Key]
     [Column("id")]
     public int Id { get; set; }
 
@@ -57,6 +57,5 @@ public partial class GroupFacility
     [Column("DLinkId")]
     public int? DlinkId { get; set; }
 
-
-    public virtual Group Group { get; set; }
+    public virtual KciGroup Group { get; set; }
 }

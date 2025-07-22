@@ -1,4 +1,5 @@
-import { BrowserRouter } from 'react-router-dom';
+// src/App.jsx
+
 import AppRouter from './AppRouter.jsx';
 import './App.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -8,11 +9,10 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppRouter />
-      </BrowserRouter>
+      {/* BrowserRouter از اینجا حذف شد */}
+      <AppRouter />
     </QueryClientProvider>
   );
 }
 
-export default App
+export default App;

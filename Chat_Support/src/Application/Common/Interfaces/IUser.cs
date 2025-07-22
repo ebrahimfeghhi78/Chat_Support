@@ -3,5 +3,5 @@
 public interface IUser
 {
     int Id { get; }
-    int RegionId { get; set; }
+    int RegionId { get; }
 }

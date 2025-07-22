@@ -1,14 +1,17 @@
-﻿using Chat_Support.Application.Common.Interfaces;
+﻿using System.Text;
+using Chat_Support.Application.Common.Interfaces;
 using Chat_Support.Domain.Constants;
 using Chat_Support.Infrastructure.Data;
 using Chat_Support.Infrastructure.Data.Interceptors;
 using Chat_Support.Infrastructure.Identity;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Chat_Support.Infrastructure;
 public static class DependencyInjection
@@ -20,6 +23,7 @@ public static class DependencyInjection
 
         builder.Services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
         builder.Services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
+        
 
         builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
@@ -28,6 +32,7 @@ public static class DependencyInjection
                 .EnableSensitiveDataLogging()
                 .EnableDetailedErrors();
             //.AddAsyncSeeding(sp);
+            options.ReplaceService<IMigrationsSqlGenerator, CustomSqlServerMigrationsSqlGenerator>();
         });
 
         builder.EnrichSqlServerDbContext<ApplicationDbContext>();
@@ -36,17 +41,31 @@ public static class DependencyInjection
 
         //builder.Services.AddScoped<ApplicationDbContextInitialiser>();
 
-        builder.Services
-            .AddDefaultIdentity<ApplicationUser>()
-            .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>();
-
         builder.Services.AddSingleton(TimeProvider.System);
-        builder.Services.AddTransient<IIdentityService, IdentityService>();
 
         builder.Services.AddScoped<IAgentAssignmentService, Service.AgentAssignmentService>();
         builder.Services.AddScoped<IChatHubService, Service.ChatHubService>();
         builder.Services.AddScoped<IFileStorageService, Service.FileStorageService>();
+        builder.Services.AddScoped<IIdentityService, IdentityService>();
+
+        builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                    ValidAudience = builder.Configuration["Jwt:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? string.Empty))
+                };
+            });
 
         builder.Services.AddAuthorization(options =>
             options.AddPolicy(Policies.CanPurge, policy => policy.RequireRole(Roles.Administrator)));

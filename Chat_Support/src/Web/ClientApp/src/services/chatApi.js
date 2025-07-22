@@ -1,9 +1,9 @@
 // src/services/chatApi.js
 // API service for chat functionality
 
-import apiClient from '../api/axios';
+import apiClient from '../api/apiClient';
 
-const CHAT_BASE_URL = '/api/chat';
+const CHAT_BASE_URL = 'https://localhost:5001/api/chat';
 
 export const MessageType = {
   Text: 0,
@@ -95,6 +95,7 @@ export const chatApi = {
     const response = await apiClient.get(`${CHAT_BASE_URL}/users/search`, {
       params: {query},
     });
+    console.log('Search users response:', response);
     return response.data;
   },
 

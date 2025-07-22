@@ -275,7 +275,7 @@ public class Chat : EndpointGroupBase
     private static async Task<IResult> SearchUsers(
         string query,
         IApplicationDbContext context,
-        [FromServices] KciUser currentUser)
+        IUser currentUser)
     {
         var activeRegionId = currentUser.RegionId;
         var currentUserId = currentUser.Id;

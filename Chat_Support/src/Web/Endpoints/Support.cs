@@ -21,7 +21,7 @@ public class Support : EndpointGroupBase
             .AllowAnonymous()
             .WithName("StartSupportChat")
             .Produces<StartSupportChatResult>(StatusCodes.Status200OK)
-            .RequireCors("ReactApp");
+            .RequireCors("ChatSupportApp");
 
         group.MapPost("/guest/message", SendGuestMessage)
             .AllowAnonymous()
@@ -36,7 +36,7 @@ public class Support : EndpointGroupBase
 
         group.MapGet("/check-auth", (Delegate)CheckSupportAuth)
             .WithName("CheckSupportAuth")
-            .RequireCors("ReactApp");
+            .RequireCors("ChatSupportApp");
 
         // Agent endpoints (require auth)
         group.MapGet("/tickets", GetAgentTickets)

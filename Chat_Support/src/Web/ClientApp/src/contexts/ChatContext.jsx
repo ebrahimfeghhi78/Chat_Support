@@ -374,7 +374,9 @@ export const ChatProvider = ({children}) => {
 
   // Initialize SignalR connection
   useEffect(() => {
+    console.log('=== ChatContext useEffect for SignalR ===');
     const token = localStorage.getItem('token');
+    console.log('=== token from localStorage ===', token);
     if (token) {
       // Update currentLoggedInUserId when token changes
       const userId = getUserIdFromToken(token);
@@ -382,7 +384,9 @@ export const ChatProvider = ({children}) => {
         dispatch({type: ActionTypes.SET_CURRENT_USER, payload: userId});
       }
 
+      console.log('=== about to call startConnection ===');
       signalRService.startConnection(token).then((connected) => {
+        console.log('=== startConnection promise resolved ===', connected);
         dispatch({type: ActionTypes.SET_CONNECTION_STATUS, payload: connected});
       });
     }

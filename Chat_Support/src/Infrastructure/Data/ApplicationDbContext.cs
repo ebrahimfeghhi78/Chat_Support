@@ -3,11 +3,10 @@ using Chat_Support.Application.Common.Interfaces;
 using Chat_Support.Domain.Entities;
 
 using Chat_Support.Infrastructure.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Chat_Support.Infrastructure.Data;
-public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplicationDbContext
+public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
@@ -37,5 +36,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     {
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        // Ignore System.Text.RegularExpressions.Capture and Group to prevent EF Core mapping errors
+        builder.Ignore<System.Text.RegularExpressions.Capture>();
+        builder.Ignore<System.Text.RegularExpressions.Group>();
     }
 }
