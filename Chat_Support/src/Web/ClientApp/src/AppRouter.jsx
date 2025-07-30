@@ -1,10 +1,12 @@
 // src/AppRouter.jsx
 
-import { Routes, Route, Link } from 'react-router-dom';
-import Chat from './components/Chat/Chat.jsx';
-import { ChatProvider } from './contexts/ChatContext.jsx';
-import ProtectedRoute from './components/ProtectedRoute.jsx'; 
-import { useAuth } from './hooks/useAuth';
+import { Routes, Route, Link } from "react-router-dom";
+import LiveChatWidget from "./components/Chat/LiveChatWidget.jsx";
+import Chat from "./components/Chat/Chat.jsx";
+import AgentDashboard from "./components/Chat/AgentDashboard.jsx";
+import { ChatProvider } from "./contexts/ChatContext.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import { useAuth } from "./hooks/useAuth";
 
 const Home = () => <h2>صفحه اصلی (عمومی)</h2>;
 
@@ -24,17 +26,36 @@ const AppRouter = () => {
       </nav>
       <hr /> */}
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route 
-          path="/chat/*" 
+        <Route
+          path="/"
+          element={
+            <>
+              <Home />
+              <LiveChatWidget />
+            </>
+          }
+        />
+        <Route
+          path="/chat"
           element={
             <ProtectedRoute>
               <ChatProvider>
                 <Chat />
               </ChatProvider>
             </ProtectedRoute>
-          } 
+          }
         />
+        <Route
+          path="/chat/:roomId"
+          element={
+            <ProtectedRoute>
+              <ChatProvider>
+                <Chat />
+              </ChatProvider>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/AgentDashboard" element={<AgentDashboard />} />
         {/* سایر صفحات را اینجا اضافه کنید */}
       </Routes>
     </div>

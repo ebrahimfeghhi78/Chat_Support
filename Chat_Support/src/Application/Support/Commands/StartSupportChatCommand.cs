@@ -42,29 +42,29 @@ public class StartSupportChatCommandHandler : IRequestHandler<StartSupportChatCo
     {
         // 1. مدیریت Guest User
         GuestUser? guestUser = null;
-        if (string.IsNullOrEmpty(request.UserId.ToString()))
+        int? userId = request.UserId;
+
+        if (userId == -1)
+        {
+            userId = null;
+        }
+
+        bool isGuest = string.IsNullOrEmpty(userId.ToString());
+        if (isGuest)
         {
             guestUser = await _context.GuestUsers
                 .FirstOrDefaultAsync(g => g.SessionId == request.GuestSessionId, cancellationToken);
 
             if (guestUser == null)
             {
-                guestUser = new GuestUser
-                {
-                    SessionId = request.GuestSessionId ?? Guid.NewGuid().ToString(),
-                    Name = request.GuestName,
-                    Email = request.GuestEmail,
-                    Phone = request.GuestPhone,
-                    IpAddress = request.IpAddress,
-                    UserAgent = request.UserAgent,
-                    LastActivityAt = DateTime.UtcNow
-                };
-                _context.GuestUsers.Add(guestUser);
-                await _context.SaveChangesAsync(cancellationToken);
+                // اگر کاربر مهمان معتبر نیست، خطا برگردان
+                throw new UnauthorizedAccessException("Guest user not authenticated");
             }
             else
             {
                 guestUser.LastActivityAt = DateTime.UtcNow;
+                guestUser.IsActive = true;
+                await _context.SaveChangesAsync(cancellationToken);
             }
         }
 
@@ -74,20 +74,20 @@ public class StartSupportChatCommandHandler : IRequestHandler<StartSupportChatCo
         // 3. ایجاد Chat Room
         var chatRoom = new ChatRoom
         {
-            Name = !string.IsNullOrEmpty(request.UserId.ToString())
+            Name = !isGuest
                 ? "Support Chat - User"
-                : $"Support Chat - {request.GuestName ?? "Guest"}",
+                : $"Support Chat - {guestUser?.Name ?? request.GuestName ?? "Guest"}",
             Description = "Live support chat",
             IsGroup = false,
             ChatRoomType = ChatRoomType.Support, // تنظیم نوع به پشتیبانی
-            CreatedById = request.UserId ,
+            CreatedById = isGuest ? null : userId,
             GuestIdentifier = guestUser?.SessionId
         };
         _context.ChatRooms.Add(chatRoom);
         await _context.SaveChangesAsync(cancellationToken);
 
         // 4. اضافه کردن Members
-        if (!string.IsNullOrEmpty(request.UserId.ToString()))
+        if (!isGuest)
         {
             _context.ChatRoomMembers.Add(new ChatRoomMember
             {
@@ -101,7 +101,7 @@ public class StartSupportChatCommandHandler : IRequestHandler<StartSupportChatCo
         {
             _context.ChatRoomMembers.Add(new ChatRoomMember
             {
-                UserId = assignedAgent.Id,
+                UserId = assignedAgent.UserId,
                 ChatRoomId = chatRoom.Id,
                 Role = ChatRole.Admin
             });
@@ -110,7 +110,7 @@ public class StartSupportChatCommandHandler : IRequestHandler<StartSupportChatCo
         // 5. ایجاد Support Ticket
         var ticket = new SupportTicket
         {
-            RequesterUserId = request.UserId,
+            RequesterUserId = isGuest ? null : userId,
             RequesterGuestId = guestUser?.Id,
             AssignedAgentUserId = assignedAgent?.Id,
             ChatRoomId = chatRoom.Id,
@@ -122,10 +122,9 @@ public class StartSupportChatCommandHandler : IRequestHandler<StartSupportChatCo
         var initialMessage = new ChatMessage
         {
             Content = request.InitialMessage,
-            SenderId = request.UserId,
+            SenderId = isGuest ? null : userId,
             ChatRoomId = chatRoom.Id,
             Type = MessageType.Text
-            //SenderFullName = request.UserId != null ? "کاربر" : (request.GuestName ?? "مهمان")
         };
         _context.ChatMessages.Add(initialMessage);
 
@@ -140,8 +139,8 @@ public class StartSupportChatCommandHandler : IRequestHandler<StartSupportChatCo
         return new StartSupportChatResult(
             chatRoom.Id,
             ticket.Id,
-            assignedAgent?.Id,
-            assignedAgent != null ? $"{assignedAgent.FirstName} {assignedAgent.LastName}" : null
+            assignedAgent?.UserId,
+            assignedAgent != null && assignedAgent.User != null ? $"{assignedAgent.User.FirstName} {assignedAgent.User.LastName}" : null
         );
     }
 

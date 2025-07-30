@@ -142,8 +142,5 @@ public partial class KciUser
     // ChatRooms ایجاد شده توسط کاربر
     public virtual ICollection<ChatRoom> CreatedChatRooms { get; set; } = new List<ChatRoom>();
 
-    //فیلد های جدید
-    public AgentStatus? AgentStatus { get; set; } //جدید
-    public int CurrentActiveChats { get; set; } //جدید
-    public int MaxConcurrentChats { get; set; } //جدید
+    //فیلد های جدید حذف شدند و به SupportAgent منتقل می‌شوند
 }

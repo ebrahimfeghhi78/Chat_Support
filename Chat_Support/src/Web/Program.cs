@@ -4,9 +4,11 @@ using Chat_Support.Infrastructure;
 using Chat_Support.Infrastructure.Hubs;
 using Chat_Support.ServiceDefaults;
 using Chat_Support.Web;
+using Microsoft.Extensions.FileProviders;
 
 // این خط را برای جلوگیری از تغییر نام Claim های توکن اضافه کنید
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,8 +18,11 @@ builder.AddServiceDefaults();
 builder.AddApplicationServices();
 builder.AddInfrastructureServices();
 builder.AddWebServices();
-builder.Services.AddSignalR();
-
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true; // برای دیباگ
+});
+builder.Services.AddLogging();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -30,6 +35,12 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.WebRootPath, "uploads")),
+    RequestPath = "/uploads"
+});
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("ChatSupportApp");
@@ -44,7 +55,8 @@ app.UseSwaggerUi(settings =>
 // ثبت مستقیم endpointها روی app
 app.MapRazorPages();
 app.MapControllers();
-app.MapHub<ChatHub>("/chathub");
+app.MapHub<ChatHub>("/chathub").RequireAuthorization();
+app.MapHub<GuestChatHub>("/guestchathub");
 app.MapFallbackToFile("index.html");
 app.MapDefaultEndpoints();
 app.MapEndpoints();

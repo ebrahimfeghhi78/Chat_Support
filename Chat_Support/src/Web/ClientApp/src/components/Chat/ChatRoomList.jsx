@@ -22,7 +22,6 @@ const ChatRoomList = ({rooms = [], currentRoom, onRoomSelect, onNewRoom, isLoadi
     activeRooms.forEach((room) => {
       // از پراپرتی جدید که از سرور می آید (memberIds) استفاده کنید
       if (!room.isGroup && room.members) {
-        console.log('Room Members:', room.members);
         room.members.forEach((member) => {
           // ما فقط به آیدی کاربر طرف مقابل نیاز داریم، نه کاربر فعلی
           if (member.userId !== currentLoggedInUserId) {

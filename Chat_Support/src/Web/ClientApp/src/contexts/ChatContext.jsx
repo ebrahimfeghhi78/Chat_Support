@@ -1,10 +1,15 @@
 // src/contexts/ChatContext.jsx
-import React, {useReducer, useEffect, useCallback} from 'react';
-import {chatApi} from '../services/chatApi';
-import signalRService from '../services/signalRService';
-import {MessageType, ReadStatus} from '../types/chat';
-import {getUserIdFromToken} from '../utils/jwt';
-import {ChatContext, ActionTypes, initialState, MessageDeliveryStatus} from './ChatContextCore';
+import React, { useReducer, useEffect, useCallback } from "react";
+import { chatApi } from "../services/chatApi";
+import signalRService from "../services/signalRService";
+import { MessageType, ReadStatus } from "../types/chat";
+import { getUserIdFromToken } from "../utils/jwt";
+import {
+  ChatContext,
+  ActionTypes,
+  initialState,
+  MessageDeliveryStatus,
+} from "./ChatContextCore";
 
 // Reducer
 function chatReducer(state, action) {
@@ -19,28 +24,39 @@ function chatReducer(state, action) {
 
   switch (action.type) {
     case ActionTypes.SET_CURRENT_USER:
-      return {...state, currentLoggedInUserId: action.payload};
+      return { ...state, currentLoggedInUserId: action.payload };
     case ActionTypes.SET_LOADING:
-      return {...state, isLoading: action.payload};
+      return { ...state, isLoading: action.payload };
     case ActionTypes.SET_LOADING_MESSAGES:
-      return {...state, isLoadingMessages: action.payload};
+      return { ...state, isLoadingMessages: action.payload };
     case ActionTypes.SET_ERROR:
-      return {...state, error: action.payload, isLoading: false, isLoadingMessages: false};
+      return {
+        ...state,
+        error: action.payload,
+        isLoading: false,
+        isLoadingMessages: false,
+      };
     case ActionTypes.SET_CONNECTION_STATUS:
-      return {...state, isConnected: action.payload};
+      return { ...state, isConnected: action.payload };
 
     case ActionTypes.SET_ROOMS: // برای بارگذاری اولیه روم‌ها
       // مرتب‌سازی بر اساس زمان آخرین پیام یا زمان ایجاد روم
 
-      return {...state, rooms: sortedRooms};
+      return { ...state, rooms: sortedRooms };
 
     case ActionTypes.UPSERT_CHAT_ROOM: {
       // برای افزودن یا به‌روزرسانی یک روم
       const updatedRoomData = action.payload;
-      const roomExists = state.rooms.some((room) => room.id === updatedRoomData.id);
+      const roomExists = state.rooms.some(
+        (room) => room.id === updatedRoomData.id
+      );
       let newRoomsArray;
       if (roomExists) {
-        newRoomsArray = state.rooms.map((room) => (room.id === updatedRoomData.id ? {...room, ...updatedRoomData} : room));
+        newRoomsArray = state.rooms.map((room) =>
+          room.id === updatedRoomData.id
+            ? { ...room, ...updatedRoomData }
+            : room
+        );
       } else {
         newRoomsArray = [...state.rooms, updatedRoomData];
       }
@@ -49,26 +65,26 @@ function chatReducer(state, action) {
         const timeB = new Date(b.lastMessageTime || b.createdAt).getTime();
         return timeB - timeA;
       });
-      return {...state, rooms: newRoomsArray};
+      return { ...state, rooms: newRoomsArray };
     }
 
     case ActionTypes.SET_CURRENT_ROOM:
-      return {...state, currentRoom: action.payload};
+      return { ...state, currentRoom: action.payload };
 
     case ActionTypes.SET_MESSAGES: {
       // برای بارگذاری اولیه پیام‌های یک روم
-      const {roomId, messages, hasMore, currentPage} = action.payload;
+      const { roomId, messages, hasMore, currentPage } = action.payload;
       return {
         ...state,
         messages: {
           ...state.messages,
-          [roomId]: {items: messages, hasMore, currentPage},
+          [roomId]: { items: messages, hasMore, currentPage },
         },
       };
     }
     case ActionTypes.PREPEND_MESSAGES: {
       // برای افزودن پیام‌های قدیمی‌تر به ابتدای لیست
-      const {roomId, messages, hasMore, currentPage} = action.payload;
+      const { roomId, messages, hasMore, currentPage } = action.payload;
       const existingRoomMessages = state.messages[roomId]?.items || [];
       return {
         ...state,
@@ -84,17 +100,27 @@ function chatReducer(state, action) {
     }
 
     case ActionTypes.UPDATE_MESSAGE_READ_STATUS: {
-      const {messageId, readByUserId, roomIdToUpdate} = action.payload; // roomIdToUpdate باید از جایی مشخص شود
+      const { messageId, readByUserId, roomIdToUpdate } = action.payload; // roomIdToUpdate باید از جایی مشخص شود
       if (!roomIdToUpdate || !state.messages[roomIdToUpdate]) return state;
 
       const updatedMessagesForRoom = state.messages[roomIdToUpdate].items.map(
-        (msg) => (msg.id === messageId ? {...msg, readStatus: ReadStatus.Read, readBy: [...(msg.readBy || []), readByUserId]} : msg) // readBy آرایه‌ای از یوزرآیدی‌ها
+        (msg) =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                readStatus: ReadStatus.Read,
+                readBy: [...(msg.readBy || []), readByUserId],
+              }
+            : msg // readBy آرایه‌ای از یوزرآیدی‌ها
       );
       return {
         ...state,
         messages: {
           ...state.messages,
-          [roomIdToUpdate]: {...state.messages[roomIdToUpdate], items: updatedMessagesForRoom},
+          [roomIdToUpdate]: {
+            ...state.messages[roomIdToUpdate],
+            items: updatedMessagesForRoom,
+          },
         },
       };
     }
@@ -103,12 +129,17 @@ function chatReducer(state, action) {
       return {
         ...state,
         // Filter out current logged-in user and ensure uniqueness
-        onlineUsers: action.payload.filter((user) => user.id !== state.currentLoggedInUserId).filter((user, index, self) => index === self.findIndex((u) => u.id === user.id)),
+        onlineUsers: action.payload
+          .filter((user) => user.id !== state.currentLoggedInUserId)
+          .filter(
+            (user, index, self) =>
+              index === self.findIndex((u) => u.id === user.id)
+          ),
         isLoading: false, // Assuming this action implies loading has finished for online users
       };
 
     case ActionTypes.UPDATE_USER_ONLINE_STATUS: {
-      const {userId, isOnline, user} = action.payload;
+      const { userId, isOnline, user } = action.payload;
       if (userId === state.currentLoggedInUserId) return state; // Do not add self
 
       if (isOnline) {
@@ -116,32 +147,50 @@ function chatReducer(state, action) {
         if (!userExists && user) {
           return {
             ...state,
-            onlineUsers: [...state.onlineUsers, user].filter((u, index, self) => index === self.findIndex((i) => i.id === u.id)), // Ensure uniqueness
+            onlineUsers: [...state.onlineUsers, user].filter(
+              (u, index, self) => index === self.findIndex((i) => i.id === u.id)
+            ), // Ensure uniqueness
           };
         }
       } else {
-        return {...state, onlineUsers: state.onlineUsers.filter((u) => u.id !== userId)};
+        return {
+          ...state,
+          onlineUsers: state.onlineUsers.filter((u) => u.id !== userId),
+        };
       }
       return state;
     }
 
     case ActionTypes.UPDATE_TYPING_STATUS: {
-      const {chatRoomId, userId: typingUserId, userFullName, isTyping} = action.payload;
+      const {
+        chatRoomId,
+        userId: typingUserId,
+        userFullName,
+        isTyping,
+      } = action.payload;
       const currentTypingInRoom = state.typingUsers[chatRoomId] || [];
       let newTypingUsersInRoom;
 
       if (isTyping) {
         if (!currentTypingInRoom.some((u) => u.userId === typingUserId)) {
-          newTypingUsersInRoom = [...currentTypingInRoom, {userId: typingUserId, userFullName, isTyping: true}];
+          newTypingUsersInRoom = [
+            ...currentTypingInRoom,
+            { userId: typingUserId, userFullName, isTyping: true },
+          ];
         } else {
           newTypingUsersInRoom = currentTypingInRoom; // تغییری ایجاد نشده
         }
       } else {
-        newTypingUsersInRoom = currentTypingInRoom.filter((u) => u.userId !== typingUserId);
+        newTypingUsersInRoom = currentTypingInRoom.filter(
+          (u) => u.userId !== typingUserId
+        );
       }
       return {
         ...state,
-        typingUsers: {...state.typingUsers, [chatRoomId]: newTypingUsersInRoom},
+        typingUsers: {
+          ...state.typingUsers,
+          [chatRoomId]: newTypingUsersInRoom,
+        },
       };
     }
 
@@ -149,7 +198,11 @@ function chatReducer(state, action) {
       const newMessage = action.payload;
       const roomId = newMessage.chatRoomId;
       const currentRoomMessages = state.messages[roomId]?.items || [];
-      const currentRoomInfo = state.messages[roomId] || {items: [], hasMore: false, currentPage: 1};
+      const currentRoomInfo = state.messages[roomId] || {
+        items: [],
+        hasMore: false,
+        currentPage: 1,
+      };
 
       // اگر پیام جدید از طرف دیگری است و روم فعلی باز نیست، باید isReadByMe = false باشد
       // این منطق می‌تواند پیچیده باشد، ساده‌تر است که وضعیت اولیه isReadByMe از سرور بیاید یا بعدا آپدیت شود
@@ -173,51 +226,59 @@ function chatReducer(state, action) {
 
     case ActionTypes.UPDATE_MESSAGE_READ_STATUS_FOR_SENDER: {
       // payload: { messageId, readByUserId, chatRoomId }
-      const {messageId, chatRoomId} = action.payload;
+      const { messageId, chatRoomId } = action.payload;
       if (!chatRoomId || !state.messages[chatRoomId]) return state;
 
-      const updatedMessagesForRoom = state.messages[chatRoomId].items.map((msg) =>
-        msg.id === messageId && msg.senderId === state.currentLoggedInUserId // فقط پیام‌های خودم را آپدیت کن
-          ? {...msg, deliveryStatus: MessageDeliveryStatus.Read}
-          : msg
+      const updatedMessagesForRoom = state.messages[chatRoomId].items.map(
+        (msg) =>
+          msg.id === messageId && msg.senderId === state.currentLoggedInUserId // فقط پیام‌های خودم را آپدیت کن
+            ? { ...msg, deliveryStatus: MessageDeliveryStatus.Read }
+            : msg
       );
       return {
         ...state,
         messages: {
           ...state.messages,
-          [chatRoomId]: {...state.messages[chatRoomId], items: updatedMessagesForRoom},
+          [chatRoomId]: {
+            ...state.messages[chatRoomId],
+            items: updatedMessagesForRoom,
+          },
         },
       };
     }
 
     case ActionTypes.UPDATE_MESSAGE_AS_READ_FOR_RECEIVER: {
       // payload: { messageId, chatRoomId, status }
-      const {messageId, chatRoomId} = action.payload;
+      const { messageId, chatRoomId } = action.payload;
       if (!chatRoomId || !state.messages[chatRoomId]) return state;
 
-      const updatedMessagesForRoom = state.messages[chatRoomId].items.map((msg) =>
-        msg.id === messageId && msg.senderId !== state.currentLoggedInUserId // فقط پیام‌های دیگران را که من دریافت کردم
-          ? {...msg, isReadByMe: true}
-          : msg
+      const updatedMessagesForRoom = state.messages[chatRoomId].items.map(
+        (msg) =>
+          msg.id === messageId && msg.senderId !== state.currentLoggedInUserId // فقط پیام‌های دیگران را که من دریافت کردم
+            ? { ...msg, isReadByMe: true }
+            : msg
       );
       return {
         ...state,
         messages: {
           ...state.messages,
-          [chatRoomId]: {...state.messages[chatRoomId], items: updatedMessagesForRoom},
+          [chatRoomId]: {
+            ...state.messages[chatRoomId],
+            items: updatedMessagesForRoom,
+          },
         },
       };
     }
 
     case ActionTypes.MARK_ALL_MESSAGES_AS_READ_IN_ROOM: {
-      const {roomId, userId} = action.payload; // userId کاربر لاگین کرده
+      const { roomId, userId } = action.payload; // userId کاربر لاگین کرده
       if (!roomId || !state.messages[roomId]) return state;
 
       let unreadCountChanged = false;
       const updatedMessages = state.messages[roomId].items.map((msg) => {
         if (msg.senderId !== userId && !msg.isReadByMe) {
           unreadCountChanged = true;
-          return {...msg, isReadByMe: true};
+          return { ...msg, isReadByMe: true };
         }
         return msg;
       });
@@ -226,15 +287,19 @@ function chatReducer(state, action) {
 
       const updatedRooms = state.rooms
         .map(
-          (r) => (r.id === roomId ? {...r, unreadCount: 0} : r) // unreadCount آن روم برای کاربر فعلی صفر می‌شود
+          (r) => (r.id === roomId ? { ...r, unreadCount: 0 } : r) // unreadCount آن روم برای کاربر فعلی صفر می‌شود
         )
-        .sort((a, b) => new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt));
+        .sort(
+          (a, b) =>
+            new Date(b.lastMessageTime || b.createdAt) -
+            new Date(a.lastMessageTime || a.createdAt)
+        );
 
       return {
         ...state,
         messages: {
           ...state.messages,
-          [roomId]: {...state.messages[roomId], items: updatedMessages},
+          [roomId]: { ...state.messages[roomId], items: updatedMessages },
         },
         rooms: updatedRooms,
       };
@@ -251,18 +316,29 @@ function chatReducer(state, action) {
           ...state.messages,
           [roomId]: {
             ...state.messages[roomId],
-            items: state.messages[roomId].items.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg)),
+            items: state.messages[roomId].items.map((msg) =>
+              msg.id === updatedMessage.id ? updatedMessage : msg
+            ),
           },
         },
       };
     }
 
     case ActionTypes.DELETE_MESSAGE_SUCCESS: {
-      const {messageId, roomId} = action.payload;
+      const { messageId, roomId } = action.payload;
       if (!state.messages[roomId]) return state;
 
       // Real-time update without refresh
-      const updatedMessages = state.messages[roomId].items.map((msg) => (msg.id === messageId ? {...msg, content: '[پیام حذف شد]', isDeleted: true, attachmentUrl: null} : msg));
+      const updatedMessages = state.messages[roomId].items.map((msg) =>
+        msg.id === messageId
+          ? {
+              ...msg,
+              content: "[پیام حذف شد]",
+              isDeleted: true,
+              attachmentUrl: null,
+            }
+          : msg
+      );
 
       return {
         ...state,
@@ -278,30 +354,33 @@ function chatReducer(state, action) {
 
     // real-time unread count:
     case ActionTypes.UPDATE_UNREAD_COUNT: {
-      const {roomId, unreadCount} = action.payload;
+      const { roomId, unreadCount } = action.payload;
 
       return {
         ...state,
-        rooms: state.rooms.map((room) => (room.id === roomId ? {...room, unreadCount} : room)),
+        rooms: state.rooms.map((room) =>
+          room.id === roomId ? { ...room, unreadCount } : room
+        ),
       };
     }
     case ActionTypes.SET_REPLYING_TO_MESSAGE:
-      return {...state, replyingToMessage: action.payload};
+      return { ...state, replyingToMessage: action.payload };
     case ActionTypes.CLEAR_REPLYING_TO_MESSAGE:
-      return {...state, replyingToMessage: null};
+      return { ...state, replyingToMessage: null };
 
     case ActionTypes.SET_EDITING_MESSAGE:
-      return {...state, editingMessage: action.payload};
+      return { ...state, editingMessage: action.payload };
     case ActionTypes.CLEAR_EDITING_MESSAGE:
-      return {...state, editingMessage: null};
+      return { ...state, editingMessage: null };
 
     case ActionTypes.SET_FORWARDING_MESSAGE:
-      return {...state, forwardingMessage: action.payload};
+      return { ...state, forwardingMessage: action.payload };
     case ActionTypes.CLEAR_FORWARDING_MESSAGE:
-      return {...state, forwardingMessage: null};
+      return { ...state, forwardingMessage: null };
 
     case ActionTypes.MESSAGE_REACTION_SUCCESS: {
-      const {messageId, userId, userName, emoji, chatRoomId, isRemoved} = action.payload; // userName اینجا در واقع userFullName است
+      const { messageId, userId, userName, emoji, chatRoomId, isRemoved } =
+        action.payload; // userName اینجا در واقع userFullName است
       if (!state.messages[chatRoomId]) return state;
 
       return {
@@ -313,17 +392,25 @@ function chatReducer(state, action) {
             items: state.messages[chatRoomId].items.map((msg) => {
               if (msg.id === messageId) {
                 let newReactionsList = [...(msg.reactions || [])];
-                const reactionIndex = newReactionsList.findIndex((r) => r.userId === userId && r.emoji === emoji);
+                const reactionIndex = newReactionsList.findIndex(
+                  (r) => r.userId === userId && r.emoji === emoji
+                );
 
                 if (isRemoved) {
                   if (reactionIndex > -1) {
                     newReactionsList.splice(reactionIndex, 1);
                   }
                 } else {
-                  newReactionsList = newReactionsList.filter((r) => r.userId !== userId);
-                  newReactionsList.push({emoji, userId, userName /* userFullName */});
+                  newReactionsList = newReactionsList.filter(
+                    (r) => r.userId !== userId
+                  );
+                  newReactionsList.push({
+                    emoji,
+                    userId,
+                    userName /* userFullName */,
+                  });
                 }
-                return {...msg, reactions: newReactionsList};
+                return { ...msg, reactions: newReactionsList };
               }
               return msg;
             }),
@@ -333,10 +420,19 @@ function chatReducer(state, action) {
     }
 
     case ActionTypes.SHOW_FORWARD_MODAL:
-      return {...state, isForwardModalVisible: true, messageIdToForward: action.payload};
+      return {
+        ...state,
+        isForwardModalVisible: true,
+        messageIdToForward: action.payload,
+      };
 
     case ActionTypes.HIDE_FORWARD_MODAL:
-      return {...state, isForwardModalVisible: false, messageIdToForward: null, error: null}; // Clear error on hide
+      return {
+        ...state,
+        isForwardModalVisible: false,
+        messageIdToForward: null,
+        error: null,
+      }; // Clear error on hide
 
     default:
       return state;
@@ -344,10 +440,10 @@ function chatReducer(state, action) {
 }
 
 // Provider component
-export const ChatProvider = ({children}) => {
+export const ChatProvider = ({ children }) => {
   const [state, dispatch] = useReducer(chatReducer, {
     ...initialState,
-    currentLoggedInUserId: getUserIdFromToken(localStorage.getItem('token')),
+    currentLoggedInUserId: getUserIdFromToken(localStorage.getItem("token")),
   });
 
   // --- Auto reconnect logic ---
@@ -356,12 +452,15 @@ export const ChatProvider = ({children}) => {
     let tryCount = 0;
     if (!state.isConnected) {
       reconnectTimer = setInterval(() => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (token) {
           signalRService.startConnection(token);
         }
         tryCount++;
-        if (tryCount >= 3 && window.location.pathname.toLowerCase() !== '/home/login') {
+        if (
+          tryCount >= 3 &&
+          window.location.pathname.toLowerCase() !== "/home/login"
+        ) {
           clearInterval(reconnectTimer);
           window.location.reload(); // شبه رفرش دستی
         }
@@ -374,34 +473,36 @@ export const ChatProvider = ({children}) => {
 
   // Initialize SignalR connection
   useEffect(() => {
-    console.log('=== ChatContext useEffect for SignalR ===');
-    const token = localStorage.getItem('token');
-    console.log('=== token from localStorage ===', token);
+    const token = localStorage.getItem("token");
     if (token) {
       // Update currentLoggedInUserId when token changes
       const userId = getUserIdFromToken(token);
       if (userId !== state.currentLoggedInUserId) {
-        dispatch({type: ActionTypes.SET_CURRENT_USER, payload: userId});
+        dispatch({ type: ActionTypes.SET_CURRENT_USER, payload: userId });
       }
 
-      console.log('=== about to call startConnection ===');
       signalRService.startConnection(token).then((connected) => {
-        console.log('=== startConnection promise resolved ===', connected);
-        dispatch({type: ActionTypes.SET_CONNECTION_STATUS, payload: connected});
+        dispatch({
+          type: ActionTypes.SET_CONNECTION_STATUS,
+          payload: connected,
+        });
       });
     }
 
     const handleConnectionStatusChanged = (isConnected) => {
-      dispatch({type: ActionTypes.SET_CONNECTION_STATUS, payload: isConnected});
+      dispatch({
+        type: ActionTypes.SET_CONNECTION_STATUS,
+        payload: isConnected,
+      });
     };
     const handleMessageReceived = (message) => {
       // message: ChatMessageDto
-      dispatch({type: ActionTypes.ADD_MESSAGE, payload: message});
+      dispatch({ type: ActionTypes.ADD_MESSAGE, payload: message });
       // همچنین باید unreadCount در روم مربوطه برای کاربر فعلی آپدیت شود اگر پیام از دیگری است و روم فعلی نیست
       // این منطق با ReceiveChatRoomUpdate از سرور ساده‌تر می‌شود.
     };
     const handleUserTyping = (typingData) => {
-      dispatch({type: ActionTypes.UPDATE_TYPING_STATUS, payload: typingData});
+      dispatch({ type: ActionTypes.UPDATE_TYPING_STATUS, payload: typingData });
     };
     const handleUserOnlineStatus = (userData) => {
       // userData: { UserId, IsOnline, Avatar, UserName }
@@ -424,8 +525,8 @@ export const ChatProvider = ({children}) => {
 
     const handleReceiveChatRoomUpdate = (roomData) => {
       // اطمینان از وجود داده‌های صحیح
-      if (!roomData || typeof roomData.name !== 'string') {
-        console.error('Invalid room data received:', roomData);
+      if (!roomData || typeof roomData.name !== "string") {
+        console.error("Invalid room data received:", roomData);
         return;
       }
 
@@ -434,7 +535,7 @@ export const ChatProvider = ({children}) => {
         payload: {
           ...roomData,
           // اطمینان از string بودن name
-          name: String(roomData.name || ''),
+          name: String(roomData.name || ""),
         },
       });
     };
@@ -456,11 +557,14 @@ export const ChatProvider = ({children}) => {
 
     const handleMessageEdited = (messageDto) => {
       // messageDto is ChatMessageDto
-      dispatch({type: ActionTypes.EDIT_MESSAGE_SUCCESS, payload: messageDto});
+      dispatch({ type: ActionTypes.EDIT_MESSAGE_SUCCESS, payload: messageDto });
     };
     const handleMessageDeleted = (payload) => {
       // payload: { MessageId, ChatRoomId, IsDeleted }
-      dispatch({type: ActionTypes.DELETE_MESSAGE_SUCCESS, payload: {messageId: payload.MessageId, roomId: payload.ChatRoomId}});
+      dispatch({
+        type: ActionTypes.DELETE_MESSAGE_SUCCESS,
+        payload: { messageId: payload.MessageId, roomId: payload.ChatRoomId },
+      });
     };
 
     // Add SignalR listener in useEffect
@@ -478,31 +582,64 @@ export const ChatProvider = ({children}) => {
       // The backend ReactToMessageCommandHandler now returns MessageReactionDto.
       // If the logic is toggle (add if not exist, remove if exist for that user+emoji):
       // The client reducer can infer based on current state.
-      dispatch({type: ActionTypes.MESSAGE_REACTION_SUCCESS, payload: reactionData});
+      dispatch({
+        type: ActionTypes.MESSAGE_REACTION_SUCCESS,
+        payload: reactionData,
+      });
     };
 
-    signalRService.addEventListener('MessageReacted', handleMessageReacted);
-    signalRService.addEventListener('connectionStatusChanged', handleConnectionStatusChanged);
-    signalRService.addEventListener('messageReceived', handleMessageReceived);
-    signalRService.addEventListener('userTyping', handleUserTyping);
-    signalRService.addEventListener('userOnlineStatus', handleUserOnlineStatus); // تغییر نام رویداد
-    signalRService.addEventListener('receiveChatRoomUpdate', handleReceiveChatRoomUpdate);
-    signalRService.addEventListener('messageRead', handleMessageRead);
-    signalRService.addEventListener('messageReadReceipt', handleMessageReadReceipt);
-    signalRService.addEventListener('MessageEdited', handleMessageEdited);
-    signalRService.addEventListener('MessageDeleted', handleMessageDeleted);
+    signalRService.addEventListener("MessageReacted", handleMessageReacted);
+    signalRService.addEventListener(
+      "connectionStatusChanged",
+      handleConnectionStatusChanged
+    );
+    signalRService.addEventListener("messageReceived", handleMessageReceived);
+    signalRService.addEventListener("userTyping", handleUserTyping);
+    signalRService.addEventListener("userOnlineStatus", handleUserOnlineStatus); // تغییر نام رویداد
+    signalRService.addEventListener(
+      "receiveChatRoomUpdate",
+      handleReceiveChatRoomUpdate
+    );
+    signalRService.addEventListener("messageRead", handleMessageRead);
+    signalRService.addEventListener(
+      "messageReadReceipt",
+      handleMessageReadReceipt
+    );
+    signalRService.addEventListener("MessageEdited", handleMessageEdited);
+    signalRService.addEventListener("MessageDeleted", handleMessageDeleted);
 
     return () => {
-      signalRService.removeEventListener('MessageReacted', handleMessageReacted);
-      signalRService.removeEventListener('connectionStatusChanged', handleConnectionStatusChanged);
-      signalRService.removeEventListener('messageReceived', handleMessageReceived);
-      signalRService.removeEventListener('userTyping', handleUserTyping);
-      signalRService.removeEventListener('userOnlineStatus', handleUserOnlineStatus); // تغییر نام رویداد
-      signalRService.removeEventListener('receiveChatRoomUpdate', handleReceiveChatRoomUpdate);
-      signalRService.removeEventListener('messageRead', handleMessageRead);
-      signalRService.removeEventListener('messageReadReceipt', handleMessageReadReceipt);
-      signalRService.removeEventListener('MessageEdited', handleMessageEdited);
-      signalRService.removeEventListener('MessageDeleted', handleMessageDeleted);
+      signalRService.removeEventListener(
+        "MessageReacted",
+        handleMessageReacted
+      );
+      signalRService.removeEventListener(
+        "connectionStatusChanged",
+        handleConnectionStatusChanged
+      );
+      signalRService.removeEventListener(
+        "messageReceived",
+        handleMessageReceived
+      );
+      signalRService.removeEventListener("userTyping", handleUserTyping);
+      signalRService.removeEventListener(
+        "userOnlineStatus",
+        handleUserOnlineStatus
+      ); // تغییر نام رویداد
+      signalRService.removeEventListener(
+        "receiveChatRoomUpdate",
+        handleReceiveChatRoomUpdate
+      );
+      signalRService.removeEventListener("messageRead", handleMessageRead);
+      signalRService.removeEventListener(
+        "messageReadReceipt",
+        handleMessageReadReceipt
+      );
+      signalRService.removeEventListener("MessageEdited", handleMessageEdited);
+      signalRService.removeEventListener(
+        "MessageDeleted",
+        handleMessageDeleted
+      );
       signalRService.stopConnection();
     };
   }, [state.currentLoggedInUserId]);
@@ -528,45 +665,52 @@ export const ChatProvider = ({children}) => {
         }
       }
       if (lastUnreadMessageId && signalRService.getConnectionStatus()) {
-        signalRService.markMessageAsRead(lastUnreadMessageId.toString(), roomId.toString());
+        signalRService.markMessageAsRead(
+          lastUnreadMessageId.toString(),
+          roomId.toString()
+        );
       }
       // آپدیت UI به صورت خوشبینانه (optimistic update)
-      dispatch({type: ActionTypes.MARK_ALL_MESSAGES_AS_READ_IN_ROOM, payload: {roomId, userId: state.currentLoggedInUserId}});
+      dispatch({
+        type: ActionTypes.MARK_ALL_MESSAGES_AS_READ_IN_ROOM,
+        payload: { roomId, userId: state.currentLoggedInUserId },
+      });
     },
     [state.messages, state.currentLoggedInUserId]
   );
-  const loadRooms = useCallback(
-    async (force = false) => {
-      // اگر force=true نباشد، شرط قبلی را برای جلوگیری از لود اولیه تکراری نگه می‌داریم
-      if (!force && (state.isLoading || (state.rooms.length > 0 && !state.error))) return;
 
-      dispatch({type: ActionTypes.SET_LOADING, payload: true});
-      try {
-        const rooms = await chatApi.getChatRooms();
-        if (rooms) {
-          dispatch({type: ActionTypes.SET_ROOMS, payload: rooms});
-        }
-      } catch (error) {
-        console.error('Error loading rooms:', error);
-        dispatch({type: ActionTypes.SET_ERROR, payload: 'خطا در بارگذاری چت‌ها'});
-      } finally {
-        dispatch({type: ActionTypes.SET_LOADING, payload: false});
+  const loadRooms = useCallback(async () => {
+    // از اجرای همزمان جلوگیری می‌کنیم
+    if (state.isLoading) return;
+
+    dispatch({ type: ActionTypes.SET_LOADING, payload: true });
+    try {
+      const rooms = await chatApi.getChatRooms();
+      if (rooms) {
+        dispatch({ type: ActionTypes.SET_ROOMS, payload: rooms });
       }
-    },
-    [state.isLoading, state.rooms.length, state.error]
-  );
+    } catch (error) {
+      console.error("Error loading rooms:", error);
+      dispatch({
+        type: ActionTypes.SET_ERROR,
+        payload: "خطا در بارگذاری چت‌ها",
+      });
+    } finally {
+      dispatch({ type: ActionTypes.SET_LOADING, payload: false });
+    }
+  }, [state.isLoading, dispatch]);
 
   const loadChatRooms = useCallback(async () => {
     try {
-      dispatch({type: ActionTypes.SET_LOADING, payload: true});
+      dispatch({ type: ActionTypes.SET_LOADING, payload: true });
       const rooms = await chatApi.getChatRooms(); // این API باید ChatRoomDto تکمیل شده را برگرداند
-      dispatch({type: ActionTypes.SET_ROOMS, payload: rooms});
+      dispatch({ type: ActionTypes.SET_ROOMS, payload: rooms });
       return rooms; // بازگرداندن روم‌ها برای استفاده مستقیم در صورت نیاز
     } catch (error) {
-      dispatch({type: ActionTypes.SET_ERROR, payload: error.message});
+      dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
       return []; // بازگرداندن آرایه خالی در صورت خطا
     } finally {
-      dispatch({type: ActionTypes.SET_LOADING, payload: false});
+      dispatch({ type: ActionTypes.SET_LOADING, payload: false });
     }
   }, []);
 
@@ -574,46 +718,55 @@ export const ChatProvider = ({children}) => {
     async (roomId, page = 1, pageSize = 20, isLoadingMore = false) => {
       if (state.isLoadingMessages && !isLoadingMore) return;
 
-      dispatch({type: ActionTypes.SET_LOADING_MESSAGES, payload: true});
+      dispatch({ type: ActionTypes.SET_LOADING_MESSAGES, payload: true });
 
       try {
         const response = await chatApi.getChatMessages(roomId, page, pageSize);
 
         if (isLoadingMore) {
-          dispatch({type: ActionTypes.PREPEND_MESSAGES, payload: {roomId, messages: response}});
+          dispatch({
+            type: ActionTypes.PREPEND_MESSAGES,
+            payload: { roomId, messages: response },
+          });
         } else {
-          dispatch({type: ActionTypes.SET_MESSAGES, payload: {roomId, messages: response}});
+          dispatch({
+            type: ActionTypes.SET_MESSAGES,
+            payload: { roomId, messages: response },
+          });
         }
       } catch (error) {
-        console.error('Error loading messages:', error);
-        dispatch({type: ActionTypes.SET_ERROR, payload: 'خطا در بارگذاری پیام‌ها'});
+        console.error("Error loading messages:", error);
+        dispatch({
+          type: ActionTypes.SET_ERROR,
+          payload: "خطا در بارگذاری پیام‌ها",
+        });
       } finally {
-        dispatch({type: ActionTypes.SET_LOADING_MESSAGES, payload: false});
+        dispatch({ type: ActionTypes.SET_LOADING_MESSAGES, payload: false });
       }
     },
     [state.isLoadingMessages]
   );
 
   const setCurrentRoom = useCallback((room) => {
-    dispatch({type: ActionTypes.SET_CURRENT_ROOM, payload: room});
+    dispatch({ type: ActionTypes.SET_CURRENT_ROOM, payload: room });
   }, []);
 
   const createChatRoom = useCallback(
     async (roomData) => {
       try {
-        dispatch({type: ActionTypes.SET_LOADING, payload: true});
+        dispatch({ type: ActionTypes.SET_LOADING, payload: true });
         const newRoom = await chatApi.createChatRoom(roomData);
-        await loadRooms(true); 
+        await loadRooms(true);
         return newRoom;
       } catch (error) {
-        dispatch({type: ActionTypes.SET_ERROR, payload: error.message});
+        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
         throw error;
       } finally {
-        dispatch({type: ActionTypes.SET_LOADING, payload: false});
+        dispatch({ type: ActionTypes.SET_LOADING, payload: false });
       }
     },
     [loadRooms]
-  ); 
+  );
 
   const joinRoom = useCallback(async (roomId) => {
     try {
@@ -621,7 +774,7 @@ export const ChatProvider = ({children}) => {
         await signalRService.joinRoom(roomId);
       }
     } catch (error) {
-      console.error('Error joining room:', error);
+      console.error("Error joining room:", error);
     }
   }, []);
 
@@ -631,7 +784,7 @@ export const ChatProvider = ({children}) => {
         await signalRService.leaveRoom(roomId);
       }
     } catch (error) {
-      console.error('Error leaving room:', error);
+      console.error("Error leaving room:", error);
     }
   }, []);
 
@@ -641,7 +794,7 @@ export const ChatProvider = ({children}) => {
       // پیام از طریق SignalR دریافت خواهد شد
       return response;
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       throw error;
     }
   }, []);
@@ -656,10 +809,13 @@ export const ChatProvider = ({children}) => {
   const editMessage = useCallback(
     async (messageId, newContent) => {
       try {
-        const updatedMessageDto = await chatApi.editMessage(messageId, newContent);
+        const updatedMessageDto = await chatApi.editMessage(
+          messageId,
+          newContent
+        );
         return updatedMessageDto;
       } catch (error) {
-        dispatch({type: ActionTypes.SET_ERROR, payload: error.message});
+        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
         throw error;
       }
     },
@@ -672,7 +828,7 @@ export const ChatProvider = ({children}) => {
         await chatApi.deleteMessage(messageId);
         // SignalR will broadcast "MessageDeleted"
       } catch (error) {
-        dispatch({type: ActionTypes.SET_ERROR, payload: error.message});
+        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
         throw error;
       }
     },
@@ -681,46 +837,52 @@ export const ChatProvider = ({children}) => {
 
   const setReplyingToMessage = useCallback(
     (messageData) => {
-      dispatch({type: ActionTypes.SET_REPLYING_TO_MESSAGE, payload: messageData});
+      dispatch({
+        type: ActionTypes.SET_REPLYING_TO_MESSAGE,
+        payload: messageData,
+      });
     },
     [dispatch]
   );
 
   const clearReplyingToMessage = useCallback(() => {
-    dispatch({type: ActionTypes.CLEAR_REPLYING_TO_MESSAGE});
+    dispatch({ type: ActionTypes.CLEAR_REPLYING_TO_MESSAGE });
   }, [dispatch]);
 
   const setEditingMessage = useCallback(
     (messageData) => {
-      dispatch({type: ActionTypes.SET_EDITING_MESSAGE, payload: messageData});
+      dispatch({ type: ActionTypes.SET_EDITING_MESSAGE, payload: messageData });
     },
     [dispatch]
   );
 
   const clearEditingMessage = useCallback(() => {
-    dispatch({type: ActionTypes.CLEAR_EDITING_MESSAGE});
+    dispatch({ type: ActionTypes.CLEAR_EDITING_MESSAGE });
   }, [dispatch]);
 
   const setForwardingMessage = useCallback(
     (messageData) => {
-      dispatch({type: ActionTypes.SET_FORWARDING_MESSAGE, payload: messageData});
+      dispatch({
+        type: ActionTypes.SET_FORWARDING_MESSAGE,
+        payload: messageData,
+      });
     },
     [dispatch]
   );
 
   const clearForwardingMessage = useCallback(() => {
-    dispatch({type: ActionTypes.CLEAR_FORWARDING_MESSAGE});
+    dispatch({ type: ActionTypes.CLEAR_FORWARDING_MESSAGE });
   }, [dispatch]);
 
   const sendReaction = useCallback(
     async (messageId, roomId, emoji) => {
       try {
         // API call will trigger SignalR broadcast "MessageReacted"
-        await chatApi.reactToMessage(messageId, {emoji});
+        await chatApi.reactToMessage(messageId, { emoji });
         // Optimistic update can be done here if needed, but SignalR is preferred for consistency
       } catch (error) {
-        dispatch({type: ActionTypes.SET_ERROR, payload: error.message});
-        console.error('Error sending reaction:', error);
+        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
+        console.error("Error sending reaction:", error);
       }
     },
     [dispatch]
@@ -728,13 +890,13 @@ export const ChatProvider = ({children}) => {
 
   const showForwardModal = useCallback(
     (messageId) => {
-      dispatch({type: ActionTypes.SHOW_FORWARD_MODAL, payload: messageId});
+      dispatch({ type: ActionTypes.SHOW_FORWARD_MODAL, payload: messageId });
     },
     [dispatch]
   );
 
   const hideForwardModal = useCallback(() => {
-    dispatch({type: ActionTypes.HIDE_FORWARD_MODAL});
+    dispatch({ type: ActionTypes.HIDE_FORWARD_MODAL });
   }, [dispatch]);
 
   const forwardMessage = useCallback(
@@ -742,11 +904,14 @@ export const ChatProvider = ({children}) => {
       try {
         // The API call will add a new message to the target room.
         // SignalR's 'ReceiveMessage' and 'ReceiveChatRoomUpdate' will handle UI updates in the target room.
-        const forwardedMessageDto = await chatApi.forwardMessage(originalMessageId, targetChatRoomId);
+        const forwardedMessageDto = await chatApi.forwardMessage(
+          originalMessageId,
+          targetChatRoomId
+        );
         // dispatch({ type: ActionTypes.FORWARD_MESSAGE_SUCCESS }); // Optional
         return forwardedMessageDto;
       } catch (error) {
-        dispatch({type: ActionTypes.SET_ERROR, payload: error.message}); // Set general error for modal to display
+        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message }); // Set general error for modal to display
         throw error; // Re-throw for the modal to catch locally if needed
       }
     },
@@ -795,20 +960,21 @@ export const ChatProvider = ({children}) => {
     forwardMessage,
     // Typing actions
     startTyping: (roomId) => signalRService.startTyping(roomId.toString()),
-    stopTyping: (roomId) => signalRService.stopTyping(roomId ? roomId.toString() : null),
+    stopTyping: (roomId) =>
+      signalRService.stopTyping(roomId ? roomId.toString() : null),
     // Mark message as read
     markMessageAsRead,
     // Online users
     loadOnlineUsers: useCallback(async () => {
       try {
         const users = await chatApi.getOnlineUsers();
-        dispatch({type: ActionTypes.SET_ONLINE_USERS, payload: users});
+        dispatch({ type: ActionTypes.SET_ONLINE_USERS, payload: users });
       } catch (error) {
-        dispatch({type: ActionTypes.SET_ERROR, payload: error.message});
+        dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
       }
     }, []),
     // Error handling
-    clearError: () => dispatch({type: ActionTypes.SET_ERROR, payload: null}),
+    clearError: () => dispatch({ type: ActionTypes.SET_ERROR, payload: null }),
     // اضافه کردن متد ساخت چت جدید به context
     createChatRoom,
   };

@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {Container, Row, Col, Card, Button, Form, Badge, ListGroup, Spinner, Alert, ButtonGroup} from 'react-bootstrap';
 import {MessageSquare, Clock, CheckCircle, ArrowRight, RefreshCw, Mail, Circle} from 'lucide-react';
-import api from '../../api/axios';
+import { chatApi } from '../../services/chatApi';
 import './Chat.css';
 
 const AgentDashboard = () => {
@@ -17,9 +17,9 @@ const AgentDashboard = () => {
 
   const loadTickets = async () => {
     try {
-      const response = await api.get('/api/support/tickets');
-      setTickets(response.data);
-      setStats((prev) => ({...prev, activeChats: response.data.filter((t) => t.status < 2).length}));
+      const tickets = await chatApi.getSupportTickets();
+      setTickets(tickets);
+      setStats((prev) => ({...prev, activeChats: tickets.filter((t) => t.status < 2).length}));
     } catch (error) {
       console.error('Failed to load tickets:', error);
     } finally {

@@ -3,11 +3,13 @@ using Chat_Support.Application.Chats.DTOs;
 using Chat_Support.Application.Common.Interfaces;
 using Chat_Support.Domain.Entities;
 using Chat_Support.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Chat_Support.Infrastructure.Hubs;
 
+[Authorize]
 public class ChatHub : Hub
 {
     private readonly IApplicationDbContext _context;
@@ -247,6 +249,7 @@ public class ChatHub : Hub
                 .FirstOrDefaultAsync();
 
             var unreadCount = await _context.ChatMessages
+                // Debug point 1: Log the parameters
                 .Where(m => m.ChatRoomId == roomId &&
                             m.SenderId != userId &&
                             !m.IsDeleted &&

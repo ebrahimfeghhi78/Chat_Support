@@ -1,9 +1,11 @@
 import React, {useState, useEffect, useRef} from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import {MessageCircle, X, Send, Paperclip, Mic, StopCircle} from 'lucide-react';
 import './Chat.css';
-import api from '../../api/axios';
+import api from '../../api/apiClient';
 
 const LiveChatWidget = () => {
+  const { isAuthenticated, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [guestInfo, setGuestInfo] = useState({
@@ -26,7 +28,7 @@ const LiveChatWidget = () => {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
-  // دریافت یا ایجاد شناسه جلسه
+  // دریافت یا ایجاد شناسه جلسه و تشخیص احراز هویت
   useEffect(() => {
     let sessionId = localStorage.getItem('chat_session_id');
     if (!sessionId) {
@@ -34,14 +36,23 @@ const LiveChatWidget = () => {
       localStorage.setItem('chat_session_id', sessionId);
     }
 
-    // بررسی کاربر بازگشتی
-    const savedInfo = localStorage.getItem('chat_guest_info');
-    if (savedInfo) {
-      const info = JSON.parse(savedInfo);
-      setGuestInfo(info);
+    if (isAuthenticated && user) {
+      setGuestInfo({
+        name: user.name || user.fullName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+      });
       setIsRegistered(true);
+    } else {
+      // بررسی کاربر بازگشتی (مهمان)
+      const savedInfo = localStorage.getItem('chat_guest_info');
+      if (savedInfo) {
+        const info = JSON.parse(savedInfo);
+        setGuestInfo(info);
+        setIsRegistered(true);
+      }
     }
-  }, []);
+  }, [isAuthenticated, user]);
 
   // اتصال SignalR برای مهمانان
   useEffect(() => {
@@ -110,14 +121,14 @@ const LiveChatWidget = () => {
 
   const startSupportChat = async () => {
     try {
-      const response = await api.post('/api/support/start', {
+      const response = await api.post('/support/start', {
         guestSessionId: localStorage.getItem('chat_session_id'),
         guestName: guestInfo.name,
         guestEmail: guestInfo.email,
         guestPhone: guestInfo.phone,
         ipAddress: '',
         userAgent: navigator.userAgent,
-        initialMessage: 'Guest started a support chat',
+        initialMessage: 'کاربر مهمان چتی را شروع کرد',
       });
 
       const result = response.data;
@@ -141,11 +152,28 @@ const LiveChatWidget = () => {
     }
   };
 
-  const handleRegistration = (e) => {
+  const handleRegistration = async (e) => {
     e.preventDefault();
-    if (guestInfo.name.trim()) {
+    if (!guestInfo.name.trim() || !guestInfo.phone.trim()) {
+      addSystemMessage('لطفاً نام و شماره تماس را وارد کنید.');
+      return;
+    }
+    try {
+      const response = await api.post('/guest/auth', {
+        name: guestInfo.name,
+        phone: guestInfo.phone,
+      });
+      const result = response.data;
+      // ذخیره SessionId دریافتی
+      localStorage.setItem('chat_session_id', result.sessionId);
+      localStorage.setItem('chat_guest_info', JSON.stringify({ name: result.name, phone: result.phone, email: guestInfo.email }));
       setIsRegistered(true);
-      localStorage.setItem('chat_guest_info', JSON.stringify(guestInfo));
+    } catch (error) {
+      let msg = 'احراز هویت مهمان با خطا مواجه شد.';
+      if (error.response && error.response.data) {
+        msg = typeof error.response.data === 'string' ? error.response.data : (error.response.data.message || msg);
+      }
+      addSystemMessage(msg);
     }
   };
 
@@ -166,7 +194,7 @@ const LiveChatWidget = () => {
 
     try {
       await api.post(
-        `/api/chat/rooms/${chatRoomId}/messages`,
+        `/chat/rooms/${chatRoomId}/messages`,
         {
           content: inputMessage,
           type: 0, // متن
@@ -192,7 +220,7 @@ const LiveChatWidget = () => {
     formData.append('type', file.type.startsWith('image/') ? '1' : '2');
 
     try {
-      const response = await api.post('/api/chat/upload', formData, {
+      const response = await api.post('/chat/upload', formData, {
         headers: {
           'X-Session-Id': localStorage.getItem('chat_session_id'),
         },
@@ -201,7 +229,7 @@ const LiveChatWidget = () => {
 
       // ارسال پیام فایل
       await api.post(
-        `/api/chat/rooms/${chatRoomId}/messages`,
+        `/chat/rooms/${chatRoomId}/messages`,
         {
           content: file.name,
           type: file.type.startsWith('image/') ? 1 : 2,
@@ -257,7 +285,7 @@ const LiveChatWidget = () => {
     formData.append('type', '3'); // نوع صوتی
 
     try {
-      const response = await api.post('/api/chat/upload', formData, {
+      const response = await api.post('/chat/upload', formData, {
         headers: {
           'X-Session-Id': localStorage.getItem('chat_session_id'),
         },
@@ -266,7 +294,7 @@ const LiveChatWidget = () => {
 
       // ارسال پیام صوتی
       await api.post(
-        `/api/chat/rooms/${chatRoomId}/messages`,
+        `/chat/rooms/${chatRoomId}/messages`,
         {
           content: 'پیام صوتی',
           type: 3, // صوتی
@@ -419,7 +447,7 @@ const LiveChatWidget = () => {
       {!isMinimized && (
         <>
           {/* Registration form با Bootstrap */}
-          {!isRegistered ? (
+          {!isRegistered && !isAuthenticated ? (
             <div className="p-4 d-flex flex-column justify-content-center h-100">
               <h5 className="mb-3">شروع گفتگو</h5>
               <p className="text-muted mb-4">لطفاً اطلاعات خود را وارد کنید تا گفتگوی شما با پشتیبانی آغاز شود.</p>

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Security.Claims;
+using System.Text;
 using Chat_Support.Application.Common.Interfaces;
 using Chat_Support.Domain.Constants;
 using Chat_Support.Infrastructure.Data;
@@ -11,6 +12,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Chat_Support.Infrastructure;
@@ -23,7 +25,7 @@ public static class DependencyInjection
 
         builder.Services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
         builder.Services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
-        
+
 
         builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
@@ -48,26 +50,64 @@ public static class DependencyInjection
         builder.Services.AddScoped<IFileStorageService, Service.FileStorageService>();
         builder.Services.AddScoped<IIdentityService, IdentityService>();
 
+
         builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
             {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(options =>
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? string.Empty)),
+                ClockSkew = TimeSpan.Zero 
+            };
+
+            options.Events = new JwtBearerEvents
             {
-                options.TokenValidationParameters = new TokenValidationParameters
+                OnMessageReceived = context =>
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                    ValidAudience = builder.Configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? string.Empty))
-                };
-            });
+                    var accessToken = context.Request.Query["access_token"];
+
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) &&
+                        (path.StartsWithSegments("/chathub") || path.StartsWithSegments("/guestchathub")))
+                    {
+                        context.Token = accessToken;
+                    }
+
+                    return Task.CompletedTask;
+                },
+                OnAuthenticationFailed = context =>
+                {
+                    var loggerFactory = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>();
+                    var logger = loggerFactory.CreateLogger("JwtBearerEvents");
+                    logger.LogError($"Authentication failed: {context.Exception}");
+                    return Task.CompletedTask;
+                },
+                OnTokenValidated = context =>
+                {
+                    var loggerFactory = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>();
+                    var logger = loggerFactory.CreateLogger("JwtBearerEvents");
+                    var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    logger.LogInformation($"Token validated for user: {userId}");
+                    return Task.CompletedTask;
+                }           
+            };
+        });
 
         builder.Services.AddAuthorization(options =>
-            options.AddPolicy(Policies.CanPurge, policy => policy.RequireRole(Roles.Administrator)));
+        {
+            options.AddPolicy(Policies.CanPurge, policy => policy.RequireRole(Roles.Administrator));
+            // پالیسی Agent برای رفع خطا اضافه شد
+            options.AddPolicy("Agent", policy => policy.RequireRole("Agent"));
+        });
     }
 }

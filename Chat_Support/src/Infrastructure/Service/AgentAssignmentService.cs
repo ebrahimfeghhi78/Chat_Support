@@ -15,30 +15,29 @@ public class AgentAssignmentService : IAgentAssignmentService
         _context = context;
     }
 
-    public async Task<KciUser?> GetBestAvailableAgentAsync(CancellationToken cancellationToken = default)
+    public async Task<SupportAgent?> GetBestAvailableAgentAsync(CancellationToken cancellationToken = default)
     {
         // یافتن Agent های آنلاین با ظرفیت
-        var availableAgents = await _context.KciUsers
-            .Where(u => u.AgentStatus == AgentStatus.Available
-                && u.CurrentActiveChats < u.MaxConcurrentChats)
-            .OrderBy(u => u.CurrentActiveChats) // کمترین تعداد چت فعال
+        var availableAgent = await _context.SupportAgents
+            .Where(a => a.AgentStatus == AgentStatus.Available
+                && a.CurrentActiveChats < a.MaxConcurrentChats)
+            .OrderBy(a => a.CurrentActiveChats)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (availableAgents != null)
+        if (availableAgent != null)
         {
-            // افزایش تعداد چت های فعال
-            availableAgents.CurrentActiveChats += 1;
+            availableAgent.CurrentActiveChats += 1;
 
             // اگر به حداکثر ظرفیت رسید، وضعیت را Busy کن
-            if (availableAgents.CurrentActiveChats >= availableAgents.MaxConcurrentChats)
+            if (availableAgent.CurrentActiveChats >= availableAgent.MaxConcurrentChats)
             {
-                availableAgents.AgentStatus = AgentStatus.Busy;
+                availableAgent.AgentStatus = AgentStatus.Busy;
             }
 
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        return availableAgents;
+        return availableAgent;
     }
 
     public async Task<int> GetAgentWorkloadAsync(int agentId, CancellationToken cancellationToken = default)
@@ -51,12 +50,12 @@ public class AgentAssignmentService : IAgentAssignmentService
 
     public async Task UpdateAgentStatusAsync(int agentId, AgentStatus status, CancellationToken cancellationToken = default)
     {
-        var agent = await _context.KciUsers.FindAsync(new object[] { agentId }, cancellationToken);
+        var agent = await _context.SupportAgents.FirstOrDefaultAsync(a => a.UserId == agentId, cancellationToken);
         if (agent != null)
         {
             agent.AgentStatus = status;
 
-            if (status == AgentStatus.Offline || status == AgentStatus.Away)
+            if (status is AgentStatus.Offline or AgentStatus.Away)
             {
                 // انتقال چت های فعال به Agent های دیگر
                 var activeTickets = await _context.SupportTickets
@@ -69,7 +68,7 @@ public class AgentAssignmentService : IAgentAssignmentService
                     var newAgent = await GetBestAvailableAgentAsync(cancellationToken);
                     if (newAgent != null)
                     {
-                        ticket.AssignedAgentUserId = newAgent.Id;
+                        ticket.AssignedAgentUserId = newAgent.UserId;
                         ticket.Status = SupportTicketStatus.Transferred;
 
                         // Add system message

@@ -16,37 +16,43 @@ public class Chat : EndpointGroupBase
 {
     public override void Map(WebApplication app)
     {
-        var chatApi = app.MapGroup("/api/chat").RequireAuthorization();
+        var chatApi = app.MapGroup("/api/chat"); // حذف RequireAuthorization پیش‌فرض
 
         // Chat Room endpoints
-        chatApi.MapGet("/rooms", GetChatRooms);
-        chatApi.MapGet("/rooms/{roomId:int}/messages", GetChatMessages);
-        chatApi.MapPost("/rooms", CreateChatRoom);
-        chatApi.MapPost("/rooms/{roomId:int}/join", JoinChatRoom);
-        chatApi.MapDelete("/rooms/{roomId:int}/leave", LeaveChatRoom);
-        chatApi.MapGet("/rooms/{roomId:int}/members", GetChatRoomMembers);
-        chatApi.MapGet("/rooms/{roomId}/unread-count", GetUnreadCount);
+        chatApi.MapGet("/rooms", GetChatRooms).RequireAuthorization();
+        chatApi.MapGet("/rooms/{roomId:int}/messages", GetChatMessages)
+            .AllowAnonymous()
+            .RequireCors("ChatSupportApp"); // مهمان هم بتواند پیام‌ها را بگیرد
+        chatApi.MapPost("/rooms", CreateChatRoom).RequireAuthorization();
+        chatApi.MapPost("/rooms/{roomId:int}/join", JoinChatRoom).RequireAuthorization();
+        chatApi.MapDelete("/rooms/{roomId:int}/leave", LeaveChatRoom).RequireAuthorization();
+        chatApi.MapGet("/rooms/{roomId:int}/members", GetChatRoomMembers).RequireAuthorization();
+        chatApi.MapGet("/rooms/{roomId}/unread-count", GetUnreadCount).RequireAuthorization();
         // Message endpoints
-        chatApi.MapPost("/rooms/{roomId:int}/messages", SendMessage);
-        chatApi.MapPut("/messages/{messageId:int}", EditMessage).WithName("EditChatMessage");
-        chatApi.MapDelete("/messages/{messageId:int}", DeleteMessage).WithName("DeleteChatMessage");
-        chatApi.MapPost("/messages/{messageId:int}/react", ReactToMessage).WithName("ReactToChatMessage");
-        chatApi.MapPost("/messages/forward", ForwardMessage).WithName("ForwardChatMessage");
+        chatApi.MapPost("/rooms/{roomId:int}/messages", SendMessage)
+            .AllowAnonymous()
+            .RequireCors("ChatSupportApp"); // مهمان بتواند پیام ارسال کند
+        chatApi.MapPut("/messages/{messageId:int}", EditMessage).WithName("EditChatMessage").RequireAuthorization();
+        chatApi.MapDelete("/messages/{messageId:int}", DeleteMessage).WithName("DeleteChatMessage").RequireAuthorization();
+        chatApi.MapPost("/messages/{messageId:int}/react", ReactToMessage).WithName("ReactToChatMessage").RequireAuthorization();
+        chatApi.MapPost("/messages/forward", ForwardMessage).WithName("ForwardChatMessage").RequireAuthorization();
 
         // User endpoints
-        chatApi.MapGet("/users/online", GetOnlineUsers);
-        chatApi.MapGet("/users/search", SearchUsers);
+        chatApi.MapGet("/users/online", GetOnlineUsers).RequireAuthorization();
+        chatApi.MapGet("/users/search", SearchUsers).RequireAuthorization();
 
         // File upload endpoint
         chatApi.MapPost("/upload", UploadFile)
+            .AllowAnonymous()
+            .RequireCors("ChatSupportApp")
             .DisableAntiforgery()
             .Accepts<IFormFile>("multipart/form-data");
 
         // Group management endpoints
-        chatApi.MapPost("/rooms/{roomId:int}/members/add", AddGroupMember);
-        chatApi.MapDelete("/rooms/{roomId:int}/members/{userId}", RemoveGroupMember);
-        chatApi.MapDelete("/rooms/{roomId:int}", DeleteChatRoom);
-        chatApi.MapPut("/rooms/{roomId:int}/soft-delete", SoftDeletePersonalChat);
+        chatApi.MapPost("/rooms/{roomId:int}/members/add", AddGroupMember).RequireAuthorization();
+        chatApi.MapDelete("/rooms/{roomId:int}/members/{userId}", RemoveGroupMember).RequireAuthorization();
+        chatApi.MapDelete("/rooms/{roomId:int}", DeleteChatRoom).RequireAuthorization();
+        chatApi.MapPut("/rooms/{roomId:int}/soft-delete", SoftDeletePersonalChat).RequireAuthorization();
     }
 
     [IgnoreAntiforgeryToken]
@@ -192,14 +198,18 @@ public class Chat : EndpointGroupBase
     private static async Task<IResult> SendMessage(
         int roomId,
         SendMessageRequest request,
-        IMediator mediator)
+        IMediator mediator,
+        HttpContext httpContext)
     {
+        // اگر کاربر مهمان است، SessionId را از هدر بخوان
+        string? guestSessionId = httpContext.Request.Headers["X-Session-Id"].ToString();
         var command = new SendMessageCommand(
             roomId,
             request.Content,
             request.Type,
             request.AttachmentUrl,
-            request.ReplyToMessageId
+            request.ReplyToMessageId,
+            guestSessionId // مقداردهی پارامتر جدید
         );
         var result = await mediator.Send(command);
         return Results.Created($"/api/chat/messages/{result.Id}", result);

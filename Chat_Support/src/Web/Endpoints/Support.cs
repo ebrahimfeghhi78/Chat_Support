@@ -38,9 +38,14 @@ public class Support : EndpointGroupBase
             .WithName("CheckSupportAuth")
             .RequireCors("ChatSupportApp");
 
+        group.MapPost("/guest/auth", GuestAuth)
+            .AllowAnonymous()
+            .WithName("GuestAuth")
+            .Produces<GuestAuthResult>(StatusCodes.Status200OK)
+            .RequireCors("ChatSupportApp");
+
         // Agent endpoints (require auth)
-        group.MapGet("/tickets", GetAgentTickets)
-            .RequireAuthorization("Agent");
+        group.MapGet("/tickets", GetAgentTickets);
 
         group.MapPost("/tickets/{ticketId}/transfer", TransferTicket)
             .RequireAuthorization("Agent");
@@ -74,22 +79,39 @@ public class Support : EndpointGroupBase
     private static async Task<IResult> StartSupportChat(
         HttpContext context,
         StartSupportChatRequest request,
-        IMediator mediator)
+        IMediator mediator,
+        IApplicationDbContext dbContext)
     {
         var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
-
-        var userId = int.Parse((context.User?.Identity?.IsAuthenticated == true
+        int? userId = null;
+        var userIdString = (context.User?.Identity?.IsAuthenticated == true
             ? context.User.FindFirst("sub")?.Value
-            : null) ?? string.Empty);
+            : null) ?? string.Empty;
 
-        // اگر کاربر لاگین نکرده، redirect به صفحه login
+        if (!string.IsNullOrEmpty(userIdString) || !string.IsNullOrWhiteSpace(userIdString))
+        {
+            userId = int.TryParse(userIdString, out var parsedId) ? parsedId : null;
+        }
+
+        // اگر کاربر لاگین نکرده، و SessionId مهمان هم نیست، unauthorized
         if (string.IsNullOrEmpty(userId.ToString()) && string.IsNullOrEmpty(request.GuestSessionId))
         {
             return Results.Unauthorized();
         }
 
+        GuestUser? guestUser = null;
+        if (string.IsNullOrEmpty(userId.ToString()))
+        {
+            // واکشی کاربر مهمان بر اساس SessionId
+            guestUser = await dbContext.GuestUsers.FirstOrDefaultAsync(g => g.SessionId == request.GuestSessionId);
+            if (guestUser == null)
+            {
+                return Results.Unauthorized(); // کاربر مهمان معتبر نیست
+            }
+        }
+
         var command = new StartSupportChatCommand(
-            userId,
+            userId ?? -1,
             request.GuestSessionId,
             request.GuestName,
             request.GuestEmail,
@@ -172,7 +194,7 @@ public class Support : EndpointGroupBase
                 .Include(t => t.RequesterGuest)
                 .Include(t => t.ChatRoom)
                 .ThenInclude(cr => cr.Messages)
-                .Where(t => t.AssignedAgentUserId == agentId);
+                .Where(t => t.AssignedAgent!.UserId == agentId);
 
             if (status.HasValue)
                 query = query.Where(t => t.Status == status.Value);
@@ -245,20 +267,20 @@ public class Support : EndpointGroupBase
     private static async Task<IResult> GetAvailableAgents(
         IApplicationDbContext dbContext)
     {
-        var agents = await dbContext.KciUsers
-            .Where(u => u.AgentStatus != AgentStatus.Offline)
-            .Select(u => new
+        var agents = await dbContext.SupportAgents
+            .Where(a => a.AgentStatus != AgentStatus.Offline)
+            .Select(a => new
             {
-                u.Id,
-                Name = $"{u.FirstName} {u.LastName}",
-                u.AgentStatus,
-                u.CurrentActiveChats,
-                u.MaxConcurrentChats,
-                WorkloadPercentage = u.MaxConcurrentChats > 0
-                    ? (u.CurrentActiveChats) * 100 / u.MaxConcurrentChats
+                a.UserId,
+                Name = a.User != null ? $"{a.User.FirstName} {a.User.LastName}" : "Agent",
+                a.AgentStatus,
+                a.CurrentActiveChats,
+                a.MaxConcurrentChats,
+                WorkloadPercentage = a.MaxConcurrentChats > 0
+                    ? (a.CurrentActiveChats) * 100 / a.MaxConcurrentChats
                     : 0
             })
-            .OrderBy(u => u.WorkloadPercentage)
+            .OrderBy(a => a.WorkloadPercentage)
             .ToListAsync();
 
         return Results.Ok(agents);
@@ -290,9 +312,9 @@ public class Support : EndpointGroupBase
         dbContext.ChatMessages.Add(closingMessage);
 
         // Update agent active chats
-        if (!string.IsNullOrEmpty(ticket.AssignedAgentUserId.ToString()))
+        if (ticket.AssignedAgentUserId.HasValue)
         {
-            var agent = await dbContext.KciUsers.FindAsync(ticket.AssignedAgentUserId);
+            var agent = await dbContext.SupportAgents.FirstOrDefaultAsync(a => a.UserId == ticket.AssignedAgentUserId.Value);
             if (agent is { CurrentActiveChats: > 0 })
             {
                 agent.CurrentActiveChats--;
@@ -313,6 +335,55 @@ public class Support : EndpointGroupBase
             "TicketClosed");
 
         return Results.Ok();
+    }
+
+    private static async Task<IResult> GuestAuth(
+        [FromBody] GuestAuthRequest request,
+        HttpContext context,
+        IApplicationDbContext dbContext)
+    {
+        // اعتبارسنجی نام و تلفن
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return Results.BadRequest("Name is required");
+        if (string.IsNullOrWhiteSpace(request.Phone))
+            return Results.BadRequest("Phone is required");
+        // اعتبارسنجی ساده شماره تلفن (می‌توانید Regex دقیق‌تر بگذارید)
+        if (request.Phone.Length < 8 || request.Phone.Length > 20)
+            return Results.BadRequest("Phone format is invalid");
+
+        // جستجو بر اساس نام و تلفن
+        var guestUser = await dbContext.GuestUsers
+            .FirstOrDefaultAsync(g => g.Name == request.Name && g.Phone == request.Phone);
+
+        if (guestUser == null)
+        {
+            // ایجاد کاربر مهمان جدید
+            guestUser = new GuestUser
+            {
+                Name = request.Name,
+                Phone = request.Phone,
+                SessionId = Guid.NewGuid().ToString(),
+                IpAddress = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
+                UserAgent = context.Request.Headers["User-Agent"].ToString(),
+                LastActivityAt = DateTime.UtcNow,
+                IsActive = true
+            };
+            dbContext.GuestUsers.Add(guestUser);
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+        }
+        else
+        {
+            // اگر قبلاً وجود داشت، SessionId را به‌روزرسانی کن (یا همان قبلی را برگردان)
+            guestUser.LastActivityAt = DateTime.UtcNow;
+            guestUser.IsActive = true;
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+        }
+
+        return Results.Ok(new GuestAuthResult(
+            guestUser.SessionId,
+            guestUser.Name!,
+            guestUser.Phone!
+        ));
     }
 
     // Request DTOs
@@ -344,4 +415,7 @@ public class Support : EndpointGroupBase
     public record CloseTicketRequest(
         string? Reason
     );
+
+    public record GuestAuthRequest(string Name, string Phone);
+    public record GuestAuthResult(string SessionId, string Name, string Phone);
 }
