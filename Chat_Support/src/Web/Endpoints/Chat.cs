@@ -105,7 +105,7 @@ public class Chat : EndpointGroupBase
     private static async Task<IResult> GetChatRooms(
     IApplicationDbContext context,
     IUser user,
-    IMapper mapper, 
+    IMapper mapper,
     [FromQuery] int page = 1,
     [FromQuery] int pageSize = 20)
     {
@@ -123,7 +123,7 @@ public class Chat : EndpointGroupBase
             {
                 // تمام اطلاعات مورد نیاز را در یک آبجکت ناشناس جمع‌آوری می‌کنیم
                 RoomEntity = room,
-                CurrentUserMembership = room.Members.FirstOrDefault(m => m.UserId == userId ),
+                CurrentUserMembership = room.Members.FirstOrDefault(m => m.UserId == userId),
                 OtherUser = !room.IsGroup ? room.Members.FirstOrDefault(m => m.UserId != userId)!.User : null,
                 LastMessage = room.Messages
                     .Where(m => !m.IsDeleted)
@@ -291,21 +291,24 @@ public class Chat : EndpointGroupBase
         var currentUserId = currentUser.Id;
 
         var users = await context.KciUsers
-            .Where(u => u.Id != currentUserId)
-            .Where(u => u.UserRegions.Any(ru => ru.RegionId == activeRegionId))
-            .Where(u => u.UserName!.Contains(query) ||
-                       u.Email!.Contains(query) ||
-                       (u.FirstName + " " + u.LastName).Contains(query))
-            .Select(u => new
-            {
-                u.Id,
-                UserName = u.UserName,
-                FullName = u.FirstName + " " + u.LastName,
-                u.Email,
-                u.ImageName
-            })
-            .Take(20)
-            .ToListAsync();
+    .Where(u => u.Id != currentUserId)
+    .Where(
+        u => u.RegionId == activeRegionId || u.UserRegions.Any(ru => ru.RegionId == activeRegionId)
+    )
+    .Where(u => u.UserName!.Contains(query) ||
+               u.Email!.Contains(query) ||
+               u.Mobile!.Contains(query) ||
+               (u.FirstName + " " + u.LastName).Contains(query))
+    .Select(u => new
+    {
+        u.Id,
+        UserName = u.Mobile,
+        FullName = u.FirstName + " " + u.LastName,
+        u.Email,
+        u.ImageName
+    })
+    .Take(20)
+    .ToListAsync();
 
         return Results.Ok(users);
     }

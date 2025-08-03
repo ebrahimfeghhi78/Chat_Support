@@ -33,7 +33,7 @@ apiClient.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem("jwt_token");
       // ریدایرکت به صفحه لاگین روبیک
-      window.location.href = `http://192.168.1.10:925/Modules/login.aspx?fromReq=%7e%2fModules%2fRedirectToChat.aspx%3f`;
+      window.location.href = `http://localhost:83/Modules/login.aspx?fromReq=%7e%2fModules%2fRedirectToChat.aspx%3f`;
     }
     return Promise.reject(error);
   }

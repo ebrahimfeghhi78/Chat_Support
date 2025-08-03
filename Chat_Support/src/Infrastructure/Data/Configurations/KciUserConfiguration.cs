@@ -19,9 +19,6 @@ public class KciUserConfiguration : IEntityTypeConfiguration<KciUser>
 
         builder.Property(e => e.AccessFlag).HasDefaultValue(true);
         builder.Property(e => e.ActiveDirectoryUserName).HasDefaultValue("");
-        builder.Property(e => e.HasLoggedIn).HasDefaultValue(false);
-        builder.Property(e => e.LastPasswordChangeDate).HasDefaultValueSql("(getdate())");
-        builder.Property(e => e.LoginAttemptCount).HasDefaultValue(0);
         builder.Property(e => e.Sex).IsFixedLength();
     }
 }

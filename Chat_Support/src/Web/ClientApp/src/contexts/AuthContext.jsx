@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         if (tokenFromUrl) {
           localStorage.setItem("jwt_token", tokenFromUrl);
-          localStorage.setItem('token', tokenFromUrl)
+          localStorage.setItem("token", tokenFromUrl);
           // آدرس را تمیز می‌کنیم تا توکن در URL باقی نماند
           window.history.replaceState(
             {},

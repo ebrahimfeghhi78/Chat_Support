@@ -52,7 +52,7 @@ public partial class KciUser
     public string Number { get; set; }
 
     [StringLength(22)]
-    public string BirthDate { get; set; }
+    public long? BirthDate { get; set; }
 
     [StringLength(50)]
     public string Degree { get; set; }
@@ -96,19 +96,6 @@ public partial class KciUser
     [Required]
     [StringLength(50)]
     public string ActiveDirectoryUserName { get; set; }
-
-    public int? EndSessionTime { get; set; }
-
-    [Column(TypeName = "datetime")]
-    public DateTime? LastPasswordChangeDate { get; set; }
-
-    public int? LoginAttemptCount { get; set; }
-
-    public bool? HasLoggedIn { get; set; }
-
-
-
-
 
     // Navigation Properties
     public virtual Region Region { get; set; }
