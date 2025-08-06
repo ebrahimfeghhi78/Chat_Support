@@ -7,6 +7,7 @@ import AgentDashboard from "./components/Chat/AgentDashboard.jsx";
 import { ChatProvider } from "./contexts/ChatContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { useAuth } from "./hooks/useAuth";
+import Login from "./components/contexts/Login.jsx";
 
 const Home = () => <h2>صفحه اصلی (عمومی)</h2>;
 
@@ -34,6 +35,10 @@ const AppRouter = () => {
               <LiveChatWidget />
             </>
           }
+        />
+        <Route
+          path="/login"
+          element={<Login />}
         />
         <Route
           path="/chat"

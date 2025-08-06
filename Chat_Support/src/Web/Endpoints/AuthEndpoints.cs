@@ -2,6 +2,9 @@
 
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Chat_Support.Application.Auth.Commands.Login;
+using Chat_Support.Application.Auth.Queries.GetUser;
 
 namespace Chat_Support.Web.Endpoints;
 
@@ -12,6 +15,7 @@ public class AuthEndpoints : EndpointGroupBase
         var group = app.MapGroup(this);
         group.MapGet("verify-token", VerifyToken);
         group.MapGet("profile", GetProfile).RequireAuthorization();
+        group.MapPost("/login", Login).AllowAnonymous();
     }
 
     // این اندپوینت توکن را از فرانت‌اند دریافت کرده و در صورت اعتبار، اطلاعات کاربر را برمی‌گرداند
@@ -56,6 +60,18 @@ public class AuthEndpoints : EndpointGroupBase
 
         return Results.Ok(profile);
     }
+
+    public async Task<Results<Ok<AuthResponseDto>, BadRequest<string>>> Login(
+     ISender sender,
+     LoginCommand command)
+    {
+        var result = await sender.Send(command);
+        if (result.Succeeded)
+            return TypedResults.Ok(result.Data);
+
+        return TypedResults.BadRequest("نام کاربری یا رمزعبور اشتباه است");
+    }
+
 }
 
 // یک DTO برای اطلاعات پروفایل کاربر تعریف کنید.
